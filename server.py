@@ -205,7 +205,7 @@ def analyze(logits, o, recent, rng, forced=None, n_top=10):
             keep = kept
         elif m < k and top_p >= 1:
             return None
-        return cand, n_p, keep
+        return cand, n_p, keep, base
 
     res = stages(min(k, SHORTLIST))
     if res is None and (top_p < 1 or min_p > 0):
@@ -220,9 +220,21 @@ def analyze(logits, o, recent, rng, forced=None, n_top=10):
             final = softmax(lp / temp)
             tid = int(rng.choice(V, p=final.astype(np.float64) / final.astype(np.float64).sum())) if forced is None else int(forced)
             fate = lambda i: {"q": r4(final[i])}
-        counts = [V, V, V]
+        counts, masses = [V, V, V], [1.0, 1.0]
+        fullp = softmax(lp)
+        stage_p = lambda i: float(fullp[i])
     else:
-        cand, n_p, keep = res
+        cand, n_p, keep, base = res
+        # probability right after top-k (the distribution the next filters work on) and the share of it
+        # that survives top-p and min-p: enough for the UI to show every stage renormalised
+        fullp = softmax(lp) if len(cand) < k else None
+        masses = [float(base[:min(n_p, len(cand))].sum()) if top_p < 1 else 1.0, float(base[:keep].sum())]
+
+        def stage_p(i):
+            r = pos[i]
+            if r < len(cand):
+                return float(base[r])
+            return float(fullp[i]) if fullp is not None else None
         if temp <= 0:
             final = np.zeros(keep); final[0] = 1.0
         else:
@@ -241,13 +253,23 @@ def analyze(logits, o, recent, rng, forced=None, n_top=10):
             return {"cut": "top_p" if r >= n_p else "min_p"}
         counts = [k, n_p, keep]
 
+    pen_p = softmax(lp) if lp is not l else None         # distribution right after the repeat penalty
+
+    def kprob(i):
+        v = stage_p(i)
+        d = {} if v is None else {"k": r4(v)}
+        if pen_p is not None:
+            d["pp"] = r4(pen_p[i])
+        return d
+
     n_top = max(1, min(int(n_top), V - 1))
     top = top_sorted(l, n_top).tolist()
     if tid not in top:
         top.append(tid)
     return {
         "id": tid, "p": r4(raw[tid]), "rank": int((l > l[tid]).sum()) + 1, "H": r4(entropy), "n": counts,
-        "top": [dict({"id": i, "p": r4(raw[i])}, **fate(i)) for i in top],
+        "m": [r4(x) for x in masses],
+        "top": [dict({"id": i, "p": r4(raw[i])}, **fate(i), **kprob(i)) for i in top],
         **fate(tid),
     }
 
@@ -330,7 +352,7 @@ class Engine:
         logits, reused = b.prime(ids, sorted(set(marks + [len(prompt_ids) - 1])))
         t1 = time.time()
         yield {
-            "type": "start", "model": b.model_id, "prompt_tokens": len(ids), "cached_tokens": reused,
+            "type": "start", "model": b.model_id, "prompt_tokens": len(ids), "cached_tokens": reused, "vocab": int(logits.shape[0]),
             "think_open": b.decode(prompt_ids[-8:]).rstrip().endswith("<think>"),
             "load_s": round(load_s, 2), "prompt_s": round(t1 - t0, 3),
         }
