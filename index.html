@@ -1,0 +1,1125 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Explorer</title>
+<style>
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --panel2:#e6eaf1; --line:#d5dbe5;
+  --ink:#18202e; --muted:#66718a; --accent:#3346d3; --accent-soft:rgba(51,70,211,.11);
+  --hot:224,82,20; --ok:#1f9d55; --err:#c53030;
+  --serif:Charter,"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141a24; --panel:#1b2230; --panel2:#232c3d; --line:#2e384b;
+  --ink:#e4e8f0; --muted:#8c97ad; --accent:#8291ff; --accent-soft:rgba(130,145,255,.16);
+  --hot:255,110,60;
+}}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:default;opacity:.5}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%}
+textarea{resize:vertical}
+
+#app{display:grid;grid-template-columns:248px 1fr;height:100%}
+/* sidebar */
+#side{background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{padding:18px 16px 10px;font:600 17px/1.1 var(--serif);letter-spacing:.01em}
+.brand small{display:block;font:12px var(--sans);color:var(--muted);margin-top:4px}
+.newchat{margin:6px 12px 10px;padding:9px;border-radius:9px;border:1px dashed var(--line);background:transparent;text-align:left}
+.newchat:hover{border-color:var(--accent);color:var(--accent)}
+#chatList{flex:1;overflow:auto;padding:0 8px}
+.chatItem{display:flex;align-items:center;gap:4px;border-radius:8px;padding:2px 2px 2px 10px}
+.chatItem.on{background:var(--panel)}
+.chatItem button.t{flex:1;background:none;border:0;text-align:left;padding:7px 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.chatItem button.x{background:none;border:0;color:var(--muted);padding:4px 8px;border-radius:6px;opacity:0}
+.chatItem:hover button.x{opacity:1}
+.chatItem button.x:hover{color:var(--err)}
+.sideFoot{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:6px}
+.sideFoot button{flex:1;background:none;border:1px solid var(--line);border-radius:8px;padding:6px;color:var(--muted)}
+
+/* main */
+main{display:flex;flex-direction:column;min-width:0;min-height:0}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.burger{display:none;background:none;border:0;font-size:18px;padding:4px 8px}
+.modelChip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 12px;max-width:340px;min-width:0}
+.modelChip span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--ok)} .dot.err{background:var(--err)}
+.spacer{flex:1}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:2px}
+.seg button{background:none;border:0;padding:5px 10px;border-radius:7px;color:var(--muted);font-size:13px}
+.seg button.on{background:var(--accent);color:#fff}
+.gear{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:5px 11px}
+.legend{display:flex;align-items:center;gap:8px;padding:6px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+.legend .bar{width:120px;height:8px;border-radius:4px}
+
+#messages{flex:1;overflow:auto;padding:24px 16px 40px}
+.thread{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
+.msg.user{align-self:flex-end;max-width:82%;background:var(--panel);border:1px solid var(--line);border-radius:16px 16px 4px 16px;padding:10px 14px;white-space:pre-wrap;word-wrap:break-word}
+.msg.assistant{font:16.5px/1.7 var(--serif)}
+.mrow{display:flex;align-items:center;gap:8px;margin-bottom:6px;font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
+.variants{display:inline-flex;align-items:center;gap:2px}
+.variants button{background:none;border:0;color:var(--muted);padding:0 5px;font-size:15px}
+.variants button:hover:not(:disabled){color:var(--accent)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:2px 8px;border:0;font:12.5px var(--sans)}
+.badge code{font:12px var(--mono)}
+.answer,.thinkBody{white-space:pre-wrap;word-wrap:break-word}
+.tok{border-radius:3px;cursor:pointer;transition:background-color .15s}
+.tok:hover,.tok.focus{outline:1.5px solid var(--accent);outline-offset:0}
+.tok.manual{background:var(--accent-soft)!important;box-shadow:inset 0 -2px 0 var(--accent)}
+.tok.np{cursor:help}
+.tok.sp{font:11px/1.5 var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin:0 2px;white-space:nowrap;vertical-align:1px}
+.tok.flash{animation:flash 1.2s}
+@keyframes flash{0%,60%{outline:3px solid var(--accent)}}
+.lead{display:none}
+details.think{border-left:2px solid var(--line);padding:2px 0 2px 14px;margin:4px 0 12px;color:var(--muted);font-size:14.5px;line-height:1.6}
+details.think summary{font:13px var(--sans);cursor:pointer;margin-bottom:4px;list-style:none}
+details.think summary::before{content:"▸ ";}
+details.think[open] summary::before{content:"▾ ";}
+.caret{display:inline-block;width:8px;height:1.05em;background:var(--accent);vertical-align:text-bottom;margin-left:2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.mfoot{display:flex;align-items:center;gap:12px;margin-top:8px;font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
+.mfoot button{background:none;border:0;color:var(--muted);padding:2px 0}
+.mfoot button:hover:not(:disabled){color:var(--accent)}
+.errBox{font:13px var(--sans);color:var(--err);background:rgba(197,48,48,.08);border-radius:8px;padding:8px 10px;margin-top:6px}
+.warn{max-width:760px;margin:0 auto 18px;font-size:13px;background:rgba(var(--hot),.1);border-radius:10px;padding:10px 12px}
+
+/* empty */
+.empty{max-width:560px;margin:8vh auto 0;text-align:left}
+.empty h1{font:600 34px/1.15 var(--serif);margin:0 0 10px}
+.empty h1 .demo .tok{padding:0 1px}
+.empty p{color:var(--muted);font-size:15px;margin:0 0 18px}
+.empty ol{padding-left:20px;color:var(--muted);margin:0 0 22px}
+.empty ol li{margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:7px 13px}
+.chips button:hover{border-color:var(--accent)}
+
+/* composer */
+.composer{padding:10px 16px 16px}
+.cbox{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 14px}
+.cbox:focus-within{border-color:var(--accent)}
+.cbox textarea{border:0;padding:6px 0;resize:none;max-height:200px;background:transparent;font-size:15px}
+.cbox textarea:focus{outline:none}
+.send{flex:none;width:38px;height:38px;border-radius:11px;border:0;background:var(--accent);color:#fff;font-size:17px}
+.send.stop{background:var(--err)}
+.chint{max-width:760px;margin:6px auto 0;font-size:12px;color:var(--muted);padding-left:4px}
+
+/* popover */
+#pop{position:fixed;z-index:50;width:340px;max-width:calc(100vw - 16px);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 12px 40px rgba(10,20,40,.22);padding:12px;font:13px/1.4 var(--sans)}
+#pop[hidden]{display:none}
+.ph{display:flex;align-items:baseline;gap:8px}
+.ph .idx{color:var(--muted);font-size:12px}
+.ph code{font:600 15px var(--mono);background:var(--panel2);border-radius:6px;padding:2px 7px;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ph .p{margin-left:auto;font:600 15px var(--sans)}
+.pin{background:none;border:0;color:var(--muted);padding:0 2px}
+.why{margin:8px 0 10px;color:var(--muted)}
+.why.manual{color:var(--accent)}
+.alts{display:flex;flex-direction:column;gap:2px;max-height:300px;overflow:auto}
+.alt{display:grid;grid-template-columns:20px minmax(0,1fr) 72px 50px;align-items:center;gap:8px;background:none;border:0;border-radius:7px;padding:4px 6px;text-align:left}
+.alt:hover:not(:disabled){background:var(--accent-soft)}
+.alt.chosen{background:var(--panel2);opacity:1}
+.alt.x{grid-template-columns:20px minmax(0,1fr) 54px 44px 54px}
+.alt .q{text-align:right;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.alt.cut code{text-decoration:line-through;opacity:.6}
+.acap{display:flex;justify-content:flex-end;gap:8px;color:var(--muted);font-size:11px;padding:0 6px 2px}
+.acap span{width:54px;text-align:right}
+#pop.wide{width:392px}
+.alt .r{color:var(--muted);font-size:11.5px;text-align:right}
+.alt code{font:13px var(--mono);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.alt .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.alt .bar i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.alt.chosen .bar i{background:var(--ink)}
+.alt .pp{text-align:right;font-variant-numeric:tabular-nums}
+.meta{display:flex;flex-wrap:wrap;gap:2px 14px;color:var(--muted);font-size:12px;margin:8px 0 0;padding-top:8px;border-top:1px solid var(--line)}
+.custom{display:flex;gap:6px;margin-top:10px}
+.custom input{font-family:var(--mono);font-size:13px}
+.custom button,.reroll{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 10px}
+.reroll{width:100%;margin-top:6px}
+.custom button:hover:not(:disabled),.reroll:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.phint{margin-top:8px;color:var(--muted);font-size:11.5px}
+
+/* drawer */
+#drawer{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100vw;background:var(--panel);border-left:1px solid var(--line);z-index:40;display:flex;flex-direction:column;box-shadow:-10px 0 40px rgba(10,20,40,.15)}
+#drawer[hidden]{display:none}
+.dh{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
+.dh h2{font:600 18px var(--serif);margin:0;flex:1}
+.dh button{background:none;border:0;font-size:16px;color:var(--muted)}
+.db{overflow:auto;padding:6px 18px 30px}
+.db section{padding:12px 0;border-bottom:1px solid var(--line)}
+.db h3{font:600 14px var(--sans);margin:4px 0 10px}
+.db label{display:block;margin-bottom:10px;color:var(--muted);font-size:12.5px}
+.db label > input,.db label > select,.db label > textarea,.db label > .row{margin-top:4px;color:var(--ink)}
+.db .rng span{display:flex;justify-content:space-between}
+.db .rng b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.db label.off{opacity:.45}
+.db input[type=range]{padding:0;border:0;accent-color:var(--accent)}
+.db .chk{display:flex;gap:8px;align-items:flex-start;color:var(--ink);font-size:13px}
+.db .chk input{width:auto;margin-top:3px}
+.db .chk small{display:block;color:var(--muted)}
+.row{display:flex;gap:6px}
+.row button{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:0 11px}
+.presets{display:flex;gap:6px;margin-bottom:10px}
+.presets button{flex:1;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px}
+.presets button:hover{border-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin:2px 0 0}
+.hint.err{color:var(--err)} .hint.ok{color:var(--ok)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+
+@media (max-width:820px){
+  #app{grid-template-columns:1fr}
+  #side{position:fixed;top:0;bottom:0;left:0;width:260px;z-index:45;transform:translateX(-100%);transition:transform .2s}
+  #app.sideOpen #side{transform:none}
+  .burger{display:block}
+  .seg button{padding:5px 7px}
+  .modelChip{max-width:150px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand">Token Explorer<small>что модель могла сказать иначе</small></div>
+    <button class="newchat" id="newChat">+ Новый чат</button>
+    <div id="chatList"></div>
+    <div class="sideFoot"><button id="exportBtn" title="Сохранить текущий чат со всеми ветками в JSON">Экспорт</button></div>
+  </aside>
+
+  <main>
+    <header>
+      <button class="burger" id="burger" aria-label="Чаты">☰</button>
+      <div class="modelChip" id="modelChip" title="Сервер и модель"><i class="dot" id="connDot"></i><span id="modelName">нет подключения</span></div>
+      <div class="spacer"></div>
+      <div class="seg" id="heatSeg" role="group" aria-label="Тепловая карта">
+        <button data-heat="off">Без карты</button>
+        <button data-heat="uncertain">Сомнения</button>
+        <button data-heat="gradient">Градиент</button>
+        <button data-heat="entropy">Энтропия</button>
+      </div>
+      <button class="gear" id="openDrawer">Настройки</button>
+    </header>
+    <div class="legend" id="legend"></div>
+    <div id="messages"></div>
+    <div class="composer">
+      <div class="cbox">
+        <textarea id="input" rows="1" placeholder="Напишите сообщение…"></textarea>
+        <button class="send" id="sendBtn" aria-label="Отправить">↑</button>
+      </div>
+      <div class="chint">Наведите на любое слово ответа, чтобы увидеть альтернативы. Клик закрепляет окно. Tab дописывает ответ небольшими шагами.</div>
+    </div>
+  </main>
+</div>
+
+<div id="pop" hidden></div>
+
+<aside id="drawer" hidden>
+  <div class="dh"><h2>Настройки</h2><button id="closeDrawer" aria-label="Закрыть">✕</button></div>
+  <div class="db">
+    <section>
+      <h3>Подключение</h3>
+      <div class="presets">
+        <button data-preset="lms">LM Studio :1234</button>
+        <button data-preset="llama">llama.cpp :8080</button>
+        <button data-preset="te">Свой сервер :8090</button>
+      </div>
+      <label>Адрес сервера<input data-k="baseUrl" type="text" spellcheck="false"></label>
+      <label>Протокол
+        <select data-k="api">
+          <option value="responses">LM Studio, /v1/responses</option>
+          <option value="chat">LM Studio, /v1/chat/completions</option>
+          <option value="openai">OpenAI-совместимый, /v1/completions</option>
+          <option value="llamacpp">llama.cpp нативный, /completion</option>
+          <option value="explorer">Свой сервер (server.py), /generate</option>
+        </select>
+      </label>
+      <p class="hint" id="apiHint" style="margin:-4px 0 10px"></p>
+      <label>Модель
+        <div class="row"><select id="modelSel"></select><button id="refreshModels" title="Обновить список">↻</button></div>
+      </label>
+      <p class="hint" id="connHint"></p>
+    </section>
+    <section>
+      <h3>Формат диалога</h3>
+      <label>Шаблон
+        <select data-k="template">
+          <option value="chatml">ChatML: Qwen, Bonsai и большинство моделей</option>
+          <option value="llama3">Llama 3</option>
+          <option value="gemma">Gemma</option>
+          <option value="raw">Простой текст «User / Assistant»</option>
+        </select>
+      </label>
+      <p class="hint" id="tplHint" style="margin:-4px 0 10px" hidden>В этом протоколе шаблон применяет сам сервер, настройка не используется.</p>
+      <label>Системный промпт<textarea data-k="system" rows="3"></textarea></label>
+      <label>Размышления (Qwen3 и похожие)
+        <select data-k="thinking">
+          <option value="auto">Как решит модель</option>
+          <option value="off">Отключить, сразу отвечать</option>
+        </select>
+      </label>
+    </section>
+    <section>
+      <h3>Сэмплинг</h3>
+      <label class="rng"><span>Temperature <b data-v="temperature"></b></span><input type="range" data-k="temperature" min="0" max="2" step="0.05"></label>
+      <label class="rng"><span>Top-K <b data-v="top_k"></b></span><input type="range" data-k="top_k" min="0" max="100" step="1"></label>
+      <label class="rng"><span>Top-P <b data-v="top_p"></b></span><input type="range" data-k="top_p" min="0" max="1" step="0.01"></label>
+      <label class="rng"><span>Min-P <b data-v="min_p"></b></span><input type="range" data-k="min_p" min="0" max="0.5" step="0.01"></label>
+      <label class="rng"><span>Штраф за повторы <b data-v="repeat_penalty"></b></span><input type="range" data-k="repeat_penalty" min="1" max="1.5" step="0.01"></label>
+      <p class="hint" id="sampHint" style="margin:-2px 0 10px" hidden>/v1/responses учитывает только Temperature и Top-P. Top-K, Min-P, штраф за повторы и seed сервер игнорирует: для них выберите протокол /v1/chat/completions.</p>
+      <div class="grid2">
+        <label>Макс. токенов<input type="number" data-k="max_tokens" min="16" max="8192"></label>
+        <label>Seed (−1 случайный)<input type="number" data-k="seed"></label>
+        <label title="Сколько токенов дописывать за одно нажатие Tab">Шаг по Tab, токенов<input type="number" data-k="tab_tokens" min="1" max="512"></label>
+      </div>
+    </section>
+    <section>
+      <h3>Отображение</h3>
+      <label class="rng"><span>Сколько альтернатив запрашивать <b data-v="n_probs"></b></span><input type="range" data-k="n_probs" min="2" max="20" step="1"></label>
+      <label class="rng"><span>Порог «сомнения» <b data-v="threshold"></b></span><input type="range" data-k="threshold" min="0.1" max="0.99" step="0.01"></label>
+      <label class="chk"><input type="checkbox" data-k="showSpecial"><span>Показывать служебные токены<small>&lt;/think&gt;, &lt;|im_end|&gt; и подобные. Заменив такой токен другим кандидатом, можно заставить модель рассуждать или отвечать дальше.</small></span></label>
+      <label class="chk"><input type="checkbox" data-k="postSampling"><span>Вероятности после сэмплеров<small>Только для нативного llama.cpp. Обрезанное top-k/top-p распределение перенормируется, поэтому уверенность выглядит выше реальной.</small></span></label>
+    </section>
+  </div>
+</aside>
+
+<script>
+"use strict";
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 10);
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'style') el.style.cssText = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const store = {
+  load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const pct = p => {
+  if (p == null) return '—';
+  const x = p * 100;
+  if (x > 0 && x < 0.1) return '<0.1%';
+  return (x >= 10 ? x.toFixed(0) : x.toFixed(1)) + '%';
+};
+const vis = s => (s || '').replace(/ /g, '·').replace(/\n/g, '↵').replace(/\t/g, '⇥') || '∅';
+const lp2p = lp => (lp == null || !isFinite(lp)) ? 0 : Math.exp(lp);
+const HOT_RE = /^<\|[^|>]*\|>$|^<\/?(start_of_turn|end_of_turn|eos|bos|s)>$/;
+
+/* ---------- state ---------- */
+const DEFAULTS = {
+  baseUrl: 'http://localhost:1234', api: 'responses', model: '', template: 'chatml',
+  system: 'Ты полезный ассистент. Отвечай по делу.', thinking: 'auto',
+  temperature: 0.7, top_k: 40, top_p: 0.95, min_p: 0.05, repeat_penalty: 1.05,
+  seed: -1, max_tokens: 1024, n_probs: 10, heat: 'uncertain', threshold: 0.6,
+  showSpecial: true, postSampling: false, tab_tokens: 16
+};
+const firstRun = store.load('te.settings', null) === null;
+let settings = Object.assign({}, DEFAULTS, store.load('te.settings', {}));
+// v2: LM Studio returns logprobs: null on /v1/completions, move saved LM Studio setups to /v1/responses
+if (!settings.v) { if (settings.api === 'openai' && /:1234\b/.test(settings.baseUrl)) settings.api = 'responses'; settings.v = 2; store.save('te.settings', settings); }
+// v3: service tokens became clickable chips and are shown by default
+if (settings.v < 3) { settings.showSpecial = true; settings.v = 3; store.save('te.settings', settings); }
+const isLMS = () => settings.api === 'responses' || settings.api === 'chat';
+let genLimit = null;                                   // per-request override, used by Tab steps
+const maxTok = () => genLimit || +settings.max_tokens;
+const isEx = () => settings.api === 'explorer';
+// tokens from our own server carry ids; text alone is ambiguous (fragments of one character all look like "�")
+const same = (a, t) => a.id != null && t.id != null ? a.id === t.id : a.t === t.t;
+const CUT = { top_k: 'top-k', top_p: 'top-p', min_p: 'min-p' };
+let db = store.load('te.db', { chats: {}, order: [], current: null });
+let busy = false, ctrl = null, models = [];
+const saveSettings = () => store.save('te.settings', settings);
+let saveT; const saveDb = () => { clearTimeout(saveT); saveT = setTimeout(() => store.save('te.db', db), 300); };
+
+const chat = () => db.chats[db.current];
+function newChat() {
+  const id = uid();
+  db.chats[id] = { id, title: 'Новый чат', created: Date.now(), nodes: { root: { id: 'root', children: [], active: 0 } } };
+  db.order.unshift(id); db.current = id; saveDb(); renderAll();
+}
+function addNode(c, parentId, data) {
+  const n = Object.assign({ id: uid(), parent: parentId, children: [], active: 0 }, data);
+  c.nodes[n.id] = n;
+  const p = c.nodes[parentId]; p.children.push(n.id); p.active = p.children.length - 1;
+  return n;
+}
+function pathNodes(c) {
+  const out = []; let n = c.nodes.root;
+  while (n.children.length) { n = c.nodes[n.children[Math.min(n.active, n.children.length - 1)]]; out.push(n); }
+  return out;
+}
+const enc = new TextEncoder();
+const tokensText = toks => {
+  toks = toks.filter(t => !t.end);
+  // tokens may split a UTF-8 character, so join bytes where the server gave them
+  if (toks.some(t => Array.isArray(t.b))) {
+    try { return new TextDecoder().decode(new Uint8Array(toks.flatMap(t => Array.isArray(t.b) ? t.b : Array.from(enc.encode(t.t))))); } catch (e) {}
+  }
+  return toks.map(t => t.t).join('');
+};
+const stripThink = s => s.replace(/<think>[\s\S]*?<\/think>\s*/g, '').replace(/<think>[\s\S]*$/, '').trim();
+
+/* ---------- chat templates ---------- */
+const TEMPLATES = {
+  chatml: {
+    fmt: (sys, msgs) => (sys ? `<|im_start|>system\n${sys}<|im_end|>\n` : '') +
+      msgs.map(m => `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`).join('') + '<|im_start|>assistant\n',
+    stop: ['<|im_end|>', '<|endoftext|>', '<|im_start|>'],
+    noThink: '<think>\n\n</think>\n\n'
+  },
+  llama3: {
+    fmt: (sys, msgs) => (sys ? `<|start_header_id|>system<|end_header_id|>\n\n${sys}<|eot_id|>` : '') +
+      msgs.map(m => `<|start_header_id|>${m.role}<|end_header_id|>\n\n${m.content}<|eot_id|>`).join('') +
+      '<|start_header_id|>assistant<|end_header_id|>\n\n',
+    stop: ['<|eot_id|>', '<|end_of_text|>']
+  },
+  gemma: {
+    fmt: (sys, msgs) => msgs.map((m, i) => `<start_of_turn>${m.role === 'assistant' ? 'model' : 'user'}\n${i === 0 && sys ? sys + '\n\n' : ''}${m.content}<end_of_turn>\n`).join('') + '<start_of_turn>model\n',
+    stop: ['<end_of_turn>', '<eos>']
+  },
+  raw: {
+    fmt: (sys, msgs) => (sys ? sys + '\n\n' : '') + msgs.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}\n`).join('') + 'Assistant:',
+    stop: ['\nUser:']
+  }
+};
+function historyFor(c, node) {
+  const chain = []; let n = c.nodes[node.parent];
+  while (n && n.id !== 'root') { chain.unshift(n); n = c.nodes[n.parent]; }
+  return chain.map(m => ({ role: m.role, content: m.role === 'user' ? m.text : stripThink(tokensText(m.tokens)) }));
+}
+
+/* ---------- server I/O ---------- */
+const base = () => settings.baseUrl.trim().replace(/\/+$/, '');
+function mk(t, p, top, b, noProbs) {
+  top = (top || []).filter(x => x.t != null);
+  if (p == null) { const f = top.find(x => x.t === t); if (f) p = f.p; }
+  if (t != null && p != null && !top.some(x => x.t === t)) top.push({ t, p });
+  top.sort((a, b2) => b2.p - a.p);
+  return { t: t ?? '', p: p ?? null, top, b: Array.isArray(b) ? b : undefined, np: !!noProbs || !top.length, special: HOT_RE.test((t || '').trim()) };
+}
+const fromLp = x => mk(x.token, lp2p(x.logprob), (x.top_logprobs || []).map(y => ({ t: y.token, p: lp2p(y.logprob), b: y.bytes })), x.bytes);
+function parseChunk(j) {
+  // llama.cpp native /completion
+  if (!j.choices && ('content' in j || j.completion_probabilities)) {
+    const cps = j.completion_probabilities;
+    if (cps && cps.length) return cps.map(cp => {
+      const list = cp.top_probs || cp.top_logprobs;
+      if (list) {
+        const tops = list.map(x => ({ t: x.token, p: x.prob != null ? x.prob : lp2p(x.logprob), b: x.bytes }));
+        return mk(cp.token, cp.prob != null ? cp.prob : (cp.logprob != null ? lp2p(cp.logprob) : null), tops, cp.bytes);
+      }
+      if (cp.probs) {
+        const tops = cp.probs.map(x => ({ t: x.tok_str, p: x.prob }));
+        return mk(cp.content, null, tops);
+      }
+      return mk(cp.token ?? cp.content, null, [], null, true);
+    });
+    return j.content ? [mk(j.content, null, [], null, true)] : [];
+  }
+  // OpenAI-compatible
+  const ch = j.choices && j.choices[0];
+  if (!ch) return [];
+  const text = ch.text ?? (ch.delta && ch.delta.content) ?? '';
+  const lp = ch.logprobs;
+  if (lp) {
+    if (Array.isArray(lp.content) && lp.content.length)
+      return lp.content.map(fromLp);
+    if (Array.isArray(lp.tokens) && lp.tokens.length)
+      return lp.tokens.map((t, k) => {
+        const top = lp.top_logprobs && lp.top_logprobs[k];
+        const tops = !top ? [] : Array.isArray(top)
+          ? top.map(y => ({ t: y.token, p: lp2p(y.logprob) }))
+          : Object.entries(top).map(([tt, l]) => ({ t: tt, p: lp2p(l) }));
+        return mk(t, lp.token_logprobs ? lp2p(lp.token_logprobs[k]) : null, tops);
+      });
+  }
+  return text ? [mk(text, null, [], null, true)] : [];
+}
+async function streamCompletion(prompt, stop, signal, onTokens) {
+  const s = settings;
+  const common = {
+    temperature: +s.temperature, top_k: +s.top_k, top_p: +s.top_p, min_p: +s.min_p,
+    repeat_penalty: +s.repeat_penalty, stop, stream: true
+  };
+  if (+s.seed >= 0) common.seed = +s.seed;
+  let url, body;
+  if (s.api === 'llamacpp') {
+    url = base() + '/completion';
+    body = Object.assign({ prompt, n_predict: maxTok(), n_probs: +s.n_probs, post_sampling_probs: !!s.postSampling, cache_prompt: true }, common);
+  } else {
+    url = base() + '/v1/completions';
+    body = Object.assign({ prompt, max_tokens: maxTok(), logprobs: +s.n_probs }, common);
+    if (s.model) body.model = s.model;
+  }
+  await sse(url, body, signal, j => {
+    const toks = parseChunk(j);
+    if (toks.length) onTokens(toks);
+    return j.stop === true;
+  });
+}
+// POST + read an SSE stream; onJson returns true to finish early
+async function sse(url, body, signal, onJson) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+  if (!res.ok) {
+    const txt = await res.text(); let msg = txt.slice(0, 300);
+    try { const e = JSON.parse(txt).error; msg = (e && e.message) || e || msg; } catch (e) {}
+    throw new Error(`Сервер ответил ${res.status}: ${msg}`);
+  }
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') return;
+      let j; try { j = JSON.parse(data); } catch (e) { continue; }
+      if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+      if (onJson(j)) return;
+    }
+  }
+}
+/* LM Studio: /v1/responses and /v1/chat/completions. The server applies the chat template itself;
+   a trailing assistant message is continued as a prefill (no end-of-turn token), which is what branching needs.
+   Reasoning arrives as a separate stream without logprobs, it is wrapped into synthetic <think> tokens. */
+async function streamLMS(msgs, sys, prefill, thinkOff, signal, onTokens) {
+  const s = settings, chatApi = s.api === 'chat';
+  msgs = msgs.slice();
+  if (prefill) msgs.push({ role: 'assistant', content: prefill });
+  let url, body;
+  if (chatApi) {
+    url = base() + '/v1/chat/completions';
+    body = {
+      messages: (sys ? [{ role: 'system', content: sys }] : []).concat(msgs), max_tokens: maxTok(),
+      logprobs: true, top_logprobs: +s.n_probs, temperature: +s.temperature, top_p: +s.top_p,
+      top_k: +s.top_k, min_p: +s.min_p, repeat_penalty: +s.repeat_penalty, stream: true
+    };
+    if (+s.seed >= 0) body.seed = +s.seed;
+    if (thinkOff) body.reasoning_effort = 'none';
+  } else {
+    url = base() + '/v1/responses';
+    body = {
+      input: msgs, max_output_tokens: maxTok(), top_logprobs: +s.n_probs, include: ['message.output_text.logprobs'],
+      temperature: +s.temperature, top_p: +s.top_p, stream: true, store: false
+    };
+    if (sys) body.instructions = sys;
+    if (thinkOff) body.reasoning = { effort: 'none' };
+  }
+  if (s.model) body.model = s.model;
+  const open = prefill.lastIndexOf('<think>');
+  const st = { think: open >= 0 && prefill.indexOf('</think>', open) < 0, native: false, tail: '' };
+  const synth = t => ({ t, p: null, top: [], np: true, r: 1 });
+  const reason = d => {
+    const out = [];
+    if (!st.think) { out.push(synth('<think>\n')); st.think = true; }
+    st.native = true; st.tail = d;
+    out.push(Object.assign(mk(d, null, [], null, true), { r: 1 }));
+    return out;
+  };
+  const answer = (lps, text) => {
+    const toks = lps && lps.length ? lps.map(fromLp) : text ? [mk(text, null, [], null, true)] : [];
+    // close the block only after native reasoning; a prefilled <think> is closed by the model in plain text
+    // (the server strips the tag and, on GGUF, the blank line after it, so both are restored here)
+    if (toks.length && st.think && st.native) {
+      toks.unshift(synth((st.tail.endsWith('\n') ? '' : '\n') + '</think>' + (toks[0].t.startsWith('\n') ? '' : '\n\n')));
+      st.think = false;
+    }
+    return toks;
+  };
+  await sse(url, body, signal, j => {
+    let toks = [];
+    if (chatApi) {
+      const ch = j.choices && j.choices[0]; if (!ch) return false;
+      const d = ch.delta || {}, r = d.reasoning_content || d.reasoning;
+      if (r) toks = reason(r);
+      toks = toks.concat(answer(ch.logprobs && ch.logprobs.content, d.content));
+    } else {
+      const ty = j.type || '';
+      if (/^response\.reasoning.*\.delta$/.test(ty)) { if (j.delta) toks = reason(j.delta); }
+      else if (ty === 'response.output_text.delta') toks = answer(j.logprobs, j.delta);
+      else if (ty === 'response.failed' || ty === 'error') throw new Error((j.response && j.response.error && j.response.error.message) || j.message || 'Сервер прервал генерацию');
+      else if (ty === 'response.completed' || ty === 'response.incomplete') return true;
+    }
+    if (toks.length) onTokens(toks);
+    return false;
+  });
+}
+/* Own server (server.py): it renders the model's chat template itself and continues from token ids,
+   so a branch replays exactly the tokens that were generated. `force` tokens are fed instead of sampling
+   and come back with full statistics: that is how an alternative or the user's own text gets its probabilities. */
+async function streamExplorer(msgs, sys, node, force, signal, onTokens) {
+  const s = settings;
+  const prefix = node.tokens.filter((t, k) => !t.syn && !t.end && !(k === 0 && t.id == null && !node.thinkOff && t.t.trim() === '<think>'))
+    .map(t => t.id != null ? t.id : t.t).filter(x => x !== '');
+  const body = {
+    model: s.model || undefined, messages: (sys ? [{ role: 'system', content: sys }] : []).concat(msgs),
+    prefix, force: force || [], thinking: !node.thinkOff, max_tokens: maxTok(), n_probs: +s.n_probs,
+    temperature: +s.temperature, top_k: +s.top_k, top_p: +s.top_p, min_p: +s.min_p, repeat_penalty: +s.repeat_penalty, seed: +s.seed
+  };
+  await sse(base() + '/generate', body, signal, j => {
+    if (j.type === 'start') {
+      node.srv = { prompt: j.prompt_tokens, cached: j.cached_tokens };
+      if (j.think_open && !node.tokens.length) onTokens([{ t: '<think>\n', p: null, top: [], np: true, syn: 1 }]);
+    } else if (j.type === 'token') {
+      const t = { t: j.t, id: j.id, p: j.p, rank: j.rank, H: j.H, n: j.n, top: j.top, np: false, special: !!j.eos || HOT_RE.test(j.t.trim()) };
+      if (j.q != null) t.q = j.q; else t.cut = j.cut;
+      if (j.forced) t.manual = true;
+      if (j.eos) t.end = 1;
+      onTokens([t]);
+    } else if (j.type === 'done') return true;
+    return false;
+  });
+}
+async function checkConnection() {
+  const dot = $('#connDot'), hint = $('#connHint');
+  dot.className = 'dot'; hint.className = 'hint'; hint.textContent = 'Проверяю…';
+  try {
+    const r = await fetch(base() + '/v1/models');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    models = (j.data || j.models || []).map(m => m.id || m.name).filter(Boolean);
+    if (!settings.model && models[0]) { settings.model = models[0]; saveSettings(); }
+    dot.className = 'dot ok'; hint.className = 'hint ok';
+    hint.textContent = `Сервер на связи, моделей: ${models.length}.`;
+  } catch (e) {
+    models = [];
+    dot.className = 'dot err'; hint.className = 'hint err';
+    hint.textContent = 'Нет ответа от сервера. Проверьте, что он запущен, и что в LM Studio включён CORS (Developer, Server Settings).';
+  }
+  fillModels(); renderHeader();
+}
+function fillModels() {
+  const sel = $('#modelSel'); sel.innerHTML = '';
+  const list = models.slice();
+  if (settings.model && !list.includes(settings.model)) list.unshift(settings.model);
+  if (!list.length) sel.append(h('option', { value: '' }, 'Список пуст'));
+  for (const m of list) sel.append(h('option', { value: m }, m));
+  sel.value = settings.model || '';
+}
+
+/* ---------- generation ---------- */
+async function generate(c, node, prefix, force, limit) {
+  const lms = isLMS(), ex = isEx();
+  const T = lms || ex ? { stop: [] } : TEMPLATES[settings.template] || TEMPLATES.chatml;
+  if (node.thinkOff == null) node.thinkOff = settings.thinking === 'off' && (lms || ex || !!T.noThink);
+  let prompt = '';
+  if (!lms && !ex) {
+    prompt = T.fmt(settings.system.trim(), historyFor(c, node));
+    if (node.thinkOff && T.noThink) prompt += T.noThink;
+    prompt += prefix;
+  }
+  node.params = { temperature: settings.temperature, top_k: settings.top_k, top_p: settings.top_p, min_p: settings.min_p, model: settings.model, api: settings.api };
+  node.status = 'gen'; node.error = null;
+  busy = true; ctrl = new AbortController();
+  renderAll();
+  const t0 = performance.now(), n0 = node.tokens.length;
+  genLimit = limit || null; node.stopped = false; node.full = false;
+  try {
+    const push = toks => { node.tokens.push(...toks); scheduleMsg(node); };
+    if (ex) await streamExplorer(historyFor(c, node), settings.system.trim(), node, force, ctrl.signal, push);
+    else if (lms) await streamLMS(historyFor(c, node), settings.system.trim(), prefix, node.thinkOff, ctrl.signal, push);
+    else await streamCompletion(prompt, T.stop, ctrl.signal, push);
+    node.status = 'done';
+  } catch (e) {
+    if (e.name === 'AbortError') { node.status = 'done'; node.stopped = true; }
+    else { node.status = 'error'; node.error = e.message === 'Failed to fetch' ? 'Не удалось связаться с сервером. Он запущен? Включён CORS?' : e.message; }
+  }
+  while (node.tokens.length > n0 && T.stop.includes(node.tokens[node.tokens.length - 1].t.trim())) node.tokens.pop();
+  const dt = (performance.now() - t0) / 1000;
+  node.stats = { gen: node.tokens.length - n0, tps: (node.tokens.length - n0) / Math.max(dt, 0.001) };
+  // a continuation that produced nothing means the model had already finished its turn
+  if (prefix && node.tokens.length === n0 && node.status === 'done' && !node.stopped) node.full = true;
+  genLimit = null; busy = false; ctrl = null; saveDb(); renderAll();
+}
+const lastAssistant = c => { const p = c ? pathNodes(c) : []; const n = p[p.length - 1]; return n && n.role === 'assistant' ? n : null; };
+const isEnded = n => n.full || n.tokens.some(t => t.end);
+// Tab: grow the last answer in place by a small step, mikupad-style
+function continueLast() {
+  const c = chat(), n = lastAssistant(c);
+  if (busy || !n) return;
+  if (isEnded(n)) {
+    const k = n.tokens.findIndex(t => t.end);
+    if (k >= 0) flashTok(n.id, k);
+    return;
+  }
+  closePop(true);
+  generate(c, n, tokensText(n.tokens), null, Math.max(1, +settings.tab_tokens || 16));
+}
+async function send(text, limit) {
+  text = text.trim();
+  if (!text || busy) return;
+  if (!chat()) newChat();
+  const c = chat();
+  const path = pathNodes(c);
+  const leaf = path.length ? path[path.length - 1] : c.nodes.root;
+  const u = addNode(c, leaf.id, { role: 'user', text });
+  if (c.title === 'Новый чат') c.title = text.slice(0, 48);
+  const a = addNode(c, u.id, { role: 'assistant', tokens: [] });
+  await generate(c, a, '', null, limit);
+}
+function branchAt(nodeId, i, alt) {
+  if (busy) return;
+  const c = chat(), src = c.nodes[nodeId];
+  const n = addNode(c, src.parent, { role: 'assistant', tokens: src.tokens.slice(0, i).map(t => Object.assign({}, t)), thinkOff: src.thinkOff });
+  const ex = isEx();
+  if (alt) {
+    // our server replays the inserted token itself and returns it with probabilities
+    if (!ex) n.tokens.push({ t: alt.t, p: alt.p ?? null, top: src.tokens[i] ? src.tokens[i].top : [], b: alt.b, manual: true, np: false });
+    n.branch = { pos: i, from: src.tokens[i] ? src.tokens[i].t : '', to: alt.t, custom: !!alt.custom };
+  } else if (i > 0) {
+    n.branch = { pos: i, resample: true };
+  }
+  closePop(true);
+  generate(c, n, tokensText(n.tokens), ex && alt ? [alt.id != null ? alt.id : alt.t] : null);
+}
+function switchVariant(nodeId, dir) {
+  const c = chat(), n = c.nodes[nodeId], p = c.nodes[n.parent];
+  const k = p.children.indexOf(nodeId) + dir;
+  if (k < 0 || k >= p.children.length || busy) return;
+  p.active = k; saveDb(); closePop(true); renderMessages();
+}
+
+/* ---------- heat ---------- */
+const HOT = () => getComputedStyle(document.documentElement).getPropertyValue('--hot').trim() || '224,82,20';
+function entropyNorm(t) {
+  if (!t.top.length) return 0;
+  if (t.H != null) return Math.min(1, t.H / Math.log2(Math.max(2, t.top.length + 1)));
+  const ps = t.top.map(a => a.p); const rest = Math.max(0, 1 - ps.reduce((a, b) => a + b, 0));
+  if (rest > 1e-4) ps.push(rest);
+  const H = -ps.reduce((s, p) => s + (p > 0 ? p * Math.log2(p) : 0), 0);
+  return Math.min(1, H / Math.log2(Math.max(2, ps.length)));
+}
+function entropyBits(t) {
+  if (t.H != null) return t.H;
+  const ps = t.top.map(a => a.p); const rest = Math.max(0, 1 - ps.reduce((a, b) => a + b, 0));
+  if (rest > 1e-4) ps.push(rest);
+  return -ps.reduce((s, p) => s + (p > 0 ? p * Math.log2(p) : 0), 0);
+}
+let hotRGB = '224,82,20';
+function heatBg(t) {
+  const m = settings.heat;
+  if (m === 'off' || t.np || t.p == null || t.manual) return '';
+  if (m === 'uncertain') {
+    const thr = +settings.threshold;
+    if (t.p >= thr) return '';
+    return `rgba(${hotRGB},${(0.16 + 0.5 * (1 - t.p / thr)).toFixed(3)})`;
+  }
+  if (m === 'gradient') return `hsla(${Math.round(120 * t.p)},70%,50%,.26)`;
+  if (m === 'entropy') { const e = entropyNorm(t); return e < 0.08 ? '' : `rgba(${hotRGB},${(0.08 + 0.6 * e).toFixed(3)})`; }
+  return '';
+}
+
+/* ---------- rendering ---------- */
+function renderAll() { renderSidebar(); renderHeader(); renderMessages(); renderComposer(); }
+function renderSidebar() {
+  const list = $('#chatList'); list.innerHTML = '';
+  for (const id of db.order) {
+    const c = db.chats[id]; if (!c) continue;
+    list.append(h('div', { class: 'chatItem' + (id === db.current ? ' on' : '') },
+      h('button', { class: 't', title: c.title, onclick: () => { if (busy) return; db.current = id; saveDb(); closePop(true); $('#app').classList.remove('sideOpen'); renderAll(); } }, c.title),
+      h('button', { class: 'x', title: 'Удалить чат', onclick: () => {
+        if (busy || !confirm(`Удалить «${c.title}»?`)) return;
+        delete db.chats[id]; db.order = db.order.filter(x => x !== id);
+        if (db.current === id) db.current = db.order[0] || null;
+        if (!db.current) newChat(); else { saveDb(); renderAll(); }
+      } }, '✕')));
+  }
+}
+function renderHeader() {
+  $('#modelName').textContent = settings.model || 'модель не выбрана';
+  document.querySelectorAll('#heatSeg button').forEach(b => b.classList.toggle('on', b.dataset.heat === settings.heat));
+  const lg = $('#legend');
+  const m = settings.heat;
+  lg.style.display = m === 'off' ? 'none' : 'flex';
+  const c = hotRGB;
+  if (m === 'uncertain') lg.innerHTML = `<span>Подсвечены токены, где модель была уверена меньше чем на ${Math.round(settings.threshold * 100)}%</span><i class="bar" style="background:linear-gradient(90deg,rgba(${c},.66),rgba(${c},.16))"></i><span>чем ярче, тем больше сомнений</span>`;
+  if (m === 'gradient') lg.innerHTML = `<span>Вероятность выбранного токена</span><span>0%</span><i class="bar" style="background:linear-gradient(90deg,hsla(0,70%,50%,.5),hsla(60,70%,50%,.5),hsla(120,70%,50%,.5))"></i><span>100%</span>`;
+  if (m === 'entropy') lg.innerHTML = `<span>Разброс среди кандидатов: подсвечены места, где было из чего выбирать, даже если победитель лидировал</span>`;
+}
+function renderComposer() {
+  const b = $('#sendBtn');
+  b.classList.toggle('stop', busy); b.textContent = busy ? '■' : '↑';
+  b.setAttribute('aria-label', busy ? 'Остановить' : 'Отправить');
+}
+function emptyState() {
+  const demo = [['Модель', .98], [' выбирает', .71], [' слово', .34], [' за', .9], [' словом', .97]];
+  const title = h('h1', null, h('span', { class: 'demo' }, demo.map(([t, p]) => {
+    const s = h('span', { class: 'tok' }, t);
+    s.style.background = p < 0.6 ? `rgba(${hotRGB},${(0.16 + 0.5 * (1 - p / 0.6)).toFixed(2)})` : '';
+    return s;
+  })));
+  return h('div', { class: 'empty' }, title,
+    h('p', null, 'Здесь видно, из каких вариантов модель выбирала каждый токен, и можно пойти по другой дороге.'),
+    h('ol', null,
+      h('li', null, 'Запустите сервер в LM Studio или llama.cpp и выберите модель в настройках.'),
+      h('li', null, 'Наведите на слово в ответе: появятся кандидаты с вероятностями.'),
+      h('li', null, 'Кликните по другому кандидату, и ответ продолжится от него новой веткой.')),
+    h('div', { class: 'chips' }, ['Расскажи короткую сказку про кота', 'Придумай название для кофейни', 'Сколько будет 17 × 23? Объясни'].map(q =>
+      h('button', { onclick: () => send(q) }, q))));
+}
+function renderMessages() {
+  const box = $('#messages'); const st = box.scrollTop;
+  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+  box.innerHTML = '';
+  const c = chat(); const path = c ? pathNodes(c) : [];
+  if (!path.length) { box.append(emptyState()); return; }
+  const last = path[path.length - 1];
+  if (last.role === 'assistant' && last.status === 'done' && last.tokens.length && last.tokens.every(t => t.np || t.manual))
+    box.append(h('div', { class: 'warn' }, last.tokens.some(t => t.r)
+      ? 'Ответ оборвался на размышлениях, а для них LM Studio вероятности не отдаёт. Увеличьте «Макс. токенов» или отключите размышления в настройках.'
+      : (last.params && last.params.api) === 'openai'
+        ? 'Сервер не вернул вероятности токенов. В LM Studio эндпоинт /v1/completions всегда отвечает logprobs: null: выберите в настройках протокол «LM Studio, /v1/responses».'
+        : 'Сервер не вернул вероятности токенов, поэтому альтернативы недоступны. Для /v1/responses нужна LM Studio 0.3.39 или новее; запасной вариант — llama-server и нативный протокол.'));
+  const th = h('div', { class: 'thread' });
+  for (const n of path) th.append(n.role === 'user' ? renderUser(c, n) : renderAssistant(c, n));
+  box.append(th);
+  box.scrollTop = near ? box.scrollHeight : st;
+}
+let rafPending = new Set();
+function scheduleMsg(node) {
+  if (rafPending.has(node.id)) return;
+  rafPending.add(node.id);
+  requestAnimationFrame(() => {
+    rafPending.delete(node.id);
+    const old = document.querySelector(`[data-node="${node.id}"]`);
+    if (!old) return renderMessages();
+    const box = $('#messages'); const near = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+    old.replaceWith(renderAssistant(chat(), node));
+    if (near) box.scrollTop = box.scrollHeight;
+  });
+}
+function variantBar(c, n) {
+  const p = c.nodes[n.parent];
+  if (!p || p.children.length < 2) return null;
+  const k = p.children.indexOf(n.id);
+  return h('span', { class: 'variants' },
+    h('button', { disabled: k === 0 || busy, 'aria-label': 'Предыдущая ветка', onclick: () => switchVariant(n.id, -1) }, '‹'),
+    `ветка ${k + 1} из ${p.children.length}`,
+    h('button', { disabled: k === p.children.length - 1 || busy, 'aria-label': 'Следующая ветка', onclick: () => switchVariant(n.id, 1) }, '›'));
+}
+function renderUser(c, n) {
+  const el = h('div', { class: 'msg user', 'data-node': n.id }, n.text);
+  const vb = variantBar(c, n);
+  return vb ? h('div', { style: 'align-self:flex-end;display:flex;flex-direction:column;align-items:flex-end' }, h('div', { class: 'mrow' }, vb), el) : el;
+}
+function renderAssistant(c, n) {
+  const wrap = h('div', { class: 'msg assistant', 'data-node': n.id });
+  const row = h('div', { class: 'mrow' });
+  const vb = variantBar(c, n); if (vb) row.append(vb);
+  if (n.branch) {
+    const b = n.branch;
+    const badge = b.resample
+      ? h('button', { class: 'badge', title: 'Показать место', onclick: () => flashTok(n.id, b.pos) }, `↻ пересэмплировано с токена №${b.pos + 1}`)
+      : h('button', { class: 'badge', title: 'Показать место', onclick: () => flashTok(n.id, b.pos) }, '✎ замена ', h('code', null, vis(b.from)), ' на ', h('code', null, vis(b.to)), ` в токене №${b.pos + 1}`);
+    row.append(badge);
+  }
+  if (row.childNodes.length) wrap.append(row);
+
+  const toks = n.tokens;
+  const full = toks.map(t => t.t).join('');
+  const oi = full.indexOf('<think>'), ci = full.indexOf('</think>');
+  const ans = h('div', { class: 'answer' });
+  let thinkBox = null, thinkBody = null, thinkCount = 0, off = 0, started = false, tStarted = false;
+  toks.forEach((t, i) => {
+    const s = off; off += t.t.length;
+    const tag = t.t.trim() === '<think>' || t.t.trim() === '</think>';
+    const inThink = oi >= 0 && s >= oi && (ci < 0 || s < ci + 8);
+    if ((tag || t.special) && !settings.showSpecial) return;
+    const chip = tag || t.special;
+    const sp = h('span', { class: 'tok' + (t.manual ? ' manual' : '') + (t.np ? ' np' : '') + (chip ? ' sp' : ''), 'data-i': i });
+    sp.textContent = chip ? t.t.trim() : t.t;
+    const bg = heatBg(t); if (bg) sp.style.background = bg;
+    if (inThink) {
+      if (!thinkBox) {
+        thinkBody = h('div', { class: 'thinkBody' });
+        thinkBox = h('details', { class: 'think' }, h('summary'), thinkBody);
+        thinkBox.open = n.thinkOpen ?? (n.status === 'gen' && ci < 0);
+        thinkBox.addEventListener('toggle', () => { n.thinkOpen = thinkBox.open; });
+      }
+      if (!tStarted && t.t.trim() === '' && !t.manual) sp.classList.add('lead'); else tStarted = true;
+      thinkBody.append(sp); thinkCount++;
+    } else {
+      if (!started && t.t.trim() === '' && !t.manual) sp.classList.add('lead');
+      else started = true;
+      ans.append(sp);
+    }
+  });
+  if (thinkBox) {
+    thinkBox.querySelector('summary').textContent = (n.status === 'gen' && ci < 0 ? 'Размышляет… ' : 'Размышления, ') + thinkCount + ' ток.';
+    wrap.append(thinkBox);
+  }
+  if (n.status === 'gen' && !(thinkBox && ci < 0)) ans.append(h('span', { class: 'caret' }));
+  if (n.status === 'gen' && thinkBox && ci < 0) thinkBody.append(h('span', { class: 'caret' }));
+  if (!toks.length && n.status === 'gen' && !thinkBox) ans.append(h('span', { style: 'color:var(--muted);font:13px var(--sans)' }, 'жду первый токен… '));
+  wrap.append(ans);
+  if (n.status === 'error') wrap.append(h('div', { class: 'errBox' }, n.error));
+
+  if (n.status !== 'gen') {
+    const withP = toks.filter(t => !t.np && t.p != null && !t.manual);
+    const avg = withP.length ? withP.reduce((a, t) => a + t.p, 0) / withP.length : null;
+    const unsure = withP.filter(t => t.p < settings.threshold).length;
+    const foot = h('div', { class: 'mfoot' });
+    const bits = [`${toks.length} ток.`];
+    if (n.stats && n.stats.gen) bits.push(`${n.stats.tps.toFixed(1)} ток/с`);
+    if (avg != null) bits.push(`средняя уверенность ${pct(avg)}`, `сомнений: ${unsure}`);
+    if (n.stopped) bits.push('остановлено');
+    foot.append(h('span', null, bits.join(', ')));
+    if (lastAssistant(c) === n) foot.append(isEnded(n)
+      ? h('span', { title: 'Чтобы продолжить, замените токен конца ответа другим кандидатом или напишите новое сообщение' }, 'ответ завершён')
+      : h('button', { disabled: busy, title: 'Дописать этот ответ ещё на несколько токенов. Клавиша Tab', onclick: continueLast }, `⇥ Ещё ${+settings.tab_tokens || 16} ток.`));
+    foot.append(h('button', { disabled: busy, onclick: () => branchAt(n.id, 0, null) }, '↻ Новый вариант'));
+    foot.append(h('button', { onclick: e => { navigator.clipboard && navigator.clipboard.writeText(stripThink(tokensText(toks))); e.target.textContent = 'Скопировано'; } }, 'Копировать'));
+    wrap.append(foot);
+  }
+  return wrap;
+}
+function flashTok(nodeId, i) {
+  const el = document.querySelector(`[data-node="${nodeId}"] .tok[data-i="${i}"]`);
+  if (!el) return;
+  const d = el.closest('details'); if (d) d.open = true;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+
+/* ---------- popover ---------- */
+let pop = { node: null, i: -1, pinned: false, anchor: null }, hideT = null;
+function whyText(n, t) {
+  const w = whyBase(n, t);
+  if (!t.manual && t.q != null && t.n) w.text += ` После сэмплеров осталось кандидатов: ${t.n[2]}, фактический шанс этого токена ${pct(t.q)}.`;
+  if (t.top.length > 1 && !t.manual) {
+    if (t.end) w.text += ' Это токен конца ответа: выберите другого кандидата, и модель продолжит говорить.';
+    else if (t.t.trim() === '</think>') w.text += ' Это конец размышлений: выберите другого кандидата, и модель продолжит рассуждать.';
+  }
+  return w;
+}
+function whyBase(n, t) {
+  if (t.syn) return { cls: 'why', text: 'Часть промпта, а не ответ модели: блок размышлений открывает сам шаблон чата.' };
+  if (t.manual && t.p != null && t.rank) return { cls: 'why manual', text: `Вставлен вручную. Сама модель дала бы ему ${pct(t.p)}, это место ${t.rank} в словаре` +
+    (t.cut ? `; сэмплер ${CUT[t.cut]} его бы отсёк.` : `; после сэмплеров шанс был бы ${pct(t.q)}.`) };
+  if (t.manual) return { cls: 'why manual', text: 'Вставлен вручную. Дальше модель продолжала уже от него.' };
+  if (t.r) return { cls: 'why', text: 'Токен размышлений: LM Studio не отдаёт для них вероятности. Перегенерируйте с этого места, и продолжение размышлений придёт уже с кандидатами.' };
+  if (t.np) return { cls: 'why', text: 'Сервер не прислал вероятности для этого токена.' };
+  const r = t.rank || t.top.findIndex(a => same(a, t)) + 1;
+  const second = t.top.find(a => !same(a, t));
+  const temp = n.params ? n.params.temperature : settings.temperature;
+  if (r === 1) {
+    if (t.p >= 0.9) return { cls: 'why', text: `Вариантов почти не было: модель уверена на ${pct(t.p)}.` };
+    const gap = second ? ((t.p - second.p) * 100).toFixed(1) : null;
+    return { cls: 'why', text: `Лидер среди кандидатов${gap ? `, отрыв от второго ${gap} п.п.` : ''}. Победа не гарантирована: при temperature ${temp} сэмплинг мог выбрать и другой.` };
+  }
+  if (r === 0) return { cls: 'why', text: `Выбранного токена нет в топе: шанс был около ${pct(t.p)}.` };
+  return { cls: 'why', text: `Не самый вероятный, место ${r}. Его вытянул случайный сэмплинг при temperature ${temp}, шанс был ${pct(t.p)}.` };
+}
+function openPop(nodeId, i, anchor, pinned) {
+  const c = chat(); const n = c && c.nodes[nodeId]; const t = n && n.tokens[i];
+  if (!t) return;
+  clearTimeout(hideT);
+  if (pop.anchor) pop.anchor.classList.remove('focus');
+  pop = { node: nodeId, i, pinned, anchor };
+  anchor.classList.add('focus');
+  const el = $('#pop'); el.innerHTML = '';
+  const w = whyText(n, t);
+  el.append(h('div', { class: 'ph' },
+    h('span', { class: 'idx' }, '№' + (i + 1)), h('code', { title: JSON.stringify(t.t) + (t.id != null ? ', id ' + t.id : '') }, vis(t.t || (t.top.find(a => same(a, t)) || {}).t)),
+    h('span', { class: 'p' }, pct(t.p)),
+    pinned ? h('button', { class: 'pin', 'aria-label': 'Закрыть', onclick: () => closePop(true) }, '✕') : null));
+  el.append(h('div', { class: w.cls }, w.text));
+  el.classList.remove('wide');
+  if (t.top.length) {
+    const alts = h('div', { class: 'alts' });
+    const x = t.n != null;                             // sampler stages are known
+    el.classList.toggle('wide', x);
+    if (x) el.append(h('div', { class: 'acap' }, h('span', null, 'модель'), h('span', { title: 'Шанс после top-k, top-p, min-p и temperature' }, 'сэмплеры')));
+    const maxP = Math.max(...t.top.map(a => a.p), 0.0001);
+    t.top.slice(0, Math.max(+settings.n_probs, 2)).forEach((a, r) => {
+      const chosen = same(a, t);
+      alts.append(h('button', {
+        class: 'alt' + (chosen ? ' chosen' : '') + (x ? ' x' : '') + (a.cut ? ' cut' : ''), disabled: chosen || busy,
+        title: (chosen ? 'Этот токен был выбран' : 'Продолжить ответ с этого варианта') + (a.cut ? `. Отсечён сэмплером ${CUT[a.cut]}: выпасть не мог` : ''),
+        onclick: () => branchAt(nodeId, i, a)
+      },
+        h('span', { class: 'r' }, chosen ? '✓' : r + 1), h('code', null, vis(a.t)),
+        h('span', { class: 'bar' }, h('i', { style: `width:${(a.p / maxP * 100).toFixed(1)}%` })),
+        h('span', { class: 'pp' }, pct(a.p)),
+        x ? h('span', { class: 'q' }, a.cut ? '✕ ' + CUT[a.cut] : pct(a.q)) : null));
+    });
+    el.append(alts);
+    const rest = 1 - t.top.reduce((s, a) => s + a.p, 0);
+    el.append(h('div', { class: 'meta' },
+      h('span', null, `энтропия ${entropyBits(t).toFixed(2)} бит` + (t.H != null ? ' по всему словарю' : '')),
+      rest > 0.005 ? h('span', null, `остальные токены: ${pct(rest)}`) : null,
+      t.rank ? h('span', null, `место в словаре: ${t.rank}`) : null,
+      x ? h('span', { title: 'Сколько кандидатов оставалось после каждого сэмплера' }, `top-k ${t.n[0]} → top-p ${t.n[1]} → min-p ${t.n[2]}`) : null));
+  }
+  const inp = h('input', { type: 'text', placeholder: 'свой вариант текста', spellcheck: 'false', disabled: busy });
+  const go = () => { if (inp.value) branchAt(nodeId, i, { t: inp.value, p: null, custom: true }); };
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  inp.addEventListener('focus', () => { pop.pinned = true; });
+  el.append(h('div', { class: 'custom' }, inp, h('button', { disabled: busy, onclick: go }, 'Подставить')));
+  el.append(h('button', { class: 'reroll', disabled: busy, onclick: () => branchAt(nodeId, i, null) }, '↻ Перегенерировать с этого места'));
+  const approx = isLMS() && n.tokens.slice(0, i).some(x => x.t.includes('<think>'));
+  el.append(h('div', { class: 'phint' }, busy ? 'Дождитесь окончания генерации, чтобы ветвить.' : 'Любое действие создаёт новую ветку, исходный ответ сохраняется.' +
+    (approx ? ' Ветка от ответа с размышлениями продолжается приближённо: LM Studio вставляет перед текстом пустой блок <think>. Точное ветвление — с отключёнными размышлениями или через llama-server.' : '')));
+  el.hidden = false;
+  const r = anchor.getBoundingClientRect(), pw = el.offsetWidth, ph = el.offsetHeight;
+  let left = Math.min(Math.max(8, r.left), innerWidth - pw - 8);
+  let top = r.bottom + 6;
+  if (top + ph > innerHeight - 8) top = Math.max(8, r.top - ph - 6);
+  el.style.left = left + 'px'; el.style.top = top + 'px';
+}
+function closePop(force) {
+  if (!force && pop.pinned) return;
+  $('#pop').hidden = true;
+  if (pop.anchor) pop.anchor.classList.remove('focus');
+  pop = { node: null, i: -1, pinned: false, anchor: null };
+}
+const tokFromEvent = e => {
+  const sp = e.target.closest && e.target.closest('.tok');
+  if (!sp || !sp.closest('#messages')) return null;
+  const m = sp.closest('[data-node]'); if (!m) return null;
+  return { sp, nodeId: m.dataset.node, i: +sp.dataset.i };
+};
+document.addEventListener('mouseover', e => {
+  const x = tokFromEvent(e);
+  if (x) { if (!pop.pinned && (pop.anchor !== x.sp)) openPop(x.nodeId, x.i, x.sp, false); clearTimeout(hideT); return; }
+  if (e.target.closest && e.target.closest('#pop')) { clearTimeout(hideT); return; }
+  if (!pop.pinned && pop.node) { clearTimeout(hideT); hideT = setTimeout(() => closePop(false), 220); }
+});
+document.addEventListener('click', e => {
+  const x = tokFromEvent(e);
+  if (x) { openPop(x.nodeId, x.i, x.sp, true); return; }
+  if (!e.target.closest('#pop') && pop.node) closePop(true);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePop(true); $('#drawer').hidden = true; } });
+// Tab outside of form fields (or in the composer) generates the next small step; Shift+Tab keeps normal focus navigation
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || !$('#drawer').hidden) return;
+  const a = document.activeElement;
+  if (a && a !== document.body && a !== input && a.closest('input,textarea,select,#pop,#drawer')) return;
+  e.preventDefault();
+  if (busy) return;
+  if (input.value.trim()) { const v = input.value; input.value = ''; autosize(); send(v, Math.max(1, +settings.tab_tokens || 16)); }
+  else continueLast();
+});
+$('#messages').addEventListener('scroll', () => { if (!pop.pinned) closePop(false); });
+
+/* ---------- settings drawer ---------- */
+function syncLabels() {
+  document.querySelectorAll('[data-v]').forEach(b => {
+    const k = b.dataset.v, v = settings[k];
+    b.textContent = k === 'top_k' && +v === 0 ? 'выкл' : v;
+  });
+}
+const API_HINTS = {
+  responses: 'Вероятности и ветвление работают, шаблон чата применяет сервер. Из сэмплеров учитываются только Temperature и Top-P. У токенов размышлений вероятностей нет.',
+  chat: 'Вероятности, ветвление и все сэмплеры, включая seed; шаблон чата применяет сервер. У токенов размышлений вероятностей нет.',
+  openai: 'Raw-промпт с шаблоном на клиенте. LM Studio на этом эндпоинте вероятности не отдаёт (logprobs: null), подходит для других серверов.',
+  llamacpp: 'Самый полный режим для llama-server: вероятности всех токенов, включая размышления, и точное ветвление с любой позиции.',
+  explorer: 'Собственный движок (запуск: .venv/bin/python server.py). Вероятности по всему словарю, место токена, действие каждого сэмплера, размышления с вероятностями, точное ветвление по id токенов. Вставленный свой текст тоже получает вероятности.'
+};
+function syncApiUI() {
+  const lms = isLMS() || isEx(), resp = settings.api === 'responses';
+  $('#apiHint').textContent = API_HINTS[settings.api] || '';
+  $('#tplHint').hidden = !lms; $('#sampHint').hidden = !resp;
+  const off = (k, v) => { const el = document.querySelector(`[data-k=${k}]`); el.disabled = v; el.closest('label').classList.toggle('off', v); };
+  off('template', lms);
+  ['top_k', 'min_p', 'repeat_penalty', 'seed'].forEach(k => off(k, resp));
+  off('postSampling', settings.api !== 'llamacpp');
+}
+let connT;
+document.querySelectorAll('[data-k]').forEach(el => {
+  const k = el.dataset.k;
+  if (el.type === 'checkbox') el.checked = !!settings[k]; else el.value = settings[k];
+  const ev = (el.tagName === 'SELECT' || el.type === 'checkbox') ? 'change' : 'input';
+  el.addEventListener(ev, () => {
+    settings[k] = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.type === 'number') ? Number(el.value) : el.value;
+    saveSettings(); syncLabels();
+    if (k === 'baseUrl' || k === 'api') { clearTimeout(connT); connT = setTimeout(checkConnection, 500); }
+    if (k === 'api') syncApiUI();
+    if (['threshold', 'showSpecial', 'tab_tokens'].includes(k)) { renderHeader(); renderMessages(); }
+  });
+});
+$('#modelSel').addEventListener('change', e => { settings.model = e.target.value; saveSettings(); renderHeader(); });
+$('#refreshModels').addEventListener('click', checkConnection);
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  const [url, api] = { lms: ['http://localhost:1234', 'responses'], llama: ['http://localhost:8080', 'llamacpp'], te: ['http://localhost:8090', 'explorer'] }[b.dataset.preset];
+  settings.baseUrl = url; settings.api = api;
+  settings.model = '';
+  document.querySelector('[data-k=baseUrl]').value = settings.baseUrl;
+  document.querySelector('[data-k=api]').value = settings.api;
+  saveSettings(); syncApiUI(); checkConnection();
+}));
+$('#openDrawer').addEventListener('click', () => { $('#drawer').hidden = false; });
+$('#modelChip').addEventListener('click', () => { $('#drawer').hidden = false; });
+$('#closeDrawer').addEventListener('click', () => { $('#drawer').hidden = true; });
+document.querySelectorAll('#heatSeg button').forEach(b => b.addEventListener('click', () => {
+  settings.heat = b.dataset.heat; saveSettings(); renderHeader(); renderMessages();
+}));
+
+/* ---------- composer & misc ---------- */
+const input = $('#input');
+const autosize = () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 200) + 'px'; };
+input.addEventListener('input', autosize);
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) { const v = input.value; input.value = ''; autosize(); send(v); } }
+});
+$('#sendBtn').addEventListener('click', () => {
+  if (busy) { ctrl && ctrl.abort(); return; }
+  const v = input.value; input.value = ''; autosize(); send(v);
+});
+$('#newChat').addEventListener('click', () => { if (!busy) { newChat(); $('#app').classList.remove('sideOpen'); input.focus(); } });
+$('#burger').addEventListener('click', () => $('#app').classList.toggle('sideOpen'));
+$('#exportBtn').addEventListener('click', () => {
+  const c = chat(); if (!c) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ chat: c, settings }, null, 1)], { type: 'application/json' }));
+  a.download = (c.title || 'chat').replace(/[^\wа-яё -]/gi, '').slice(0, 40) + '.json';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+/* ---------- boot ---------- */
+hotRGB = HOT();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { hotRGB = HOT(); renderHeader(); renderMessages(); });
+// reset generation flags left from a closed tab
+for (const c of Object.values(db.chats)) for (const n of Object.values(c.nodes)) if (n.status === 'gen') { n.status = 'done'; n.stopped = true; }
+if (!db.current || !db.chats[db.current]) { if (db.order.length) db.current = db.order[0]; else newChat(); }
+syncLabels(); syncApiUI(); renderAll(); input.focus();
+(async () => {
+  // opened from server.py for the first time: point the settings at it
+  if (location.protocol.startsWith('http') && firstRun) {
+    try {
+      const j = await (await fetch(location.origin + '/info')).json();
+      if (j.engine === 'token-explorer') {
+        settings.baseUrl = location.origin; settings.api = 'explorer'; settings.model = j.model || ''; saveSettings();
+        document.querySelector('[data-k=baseUrl]').value = settings.baseUrl; document.querySelector('[data-k=api]').value = settings.api;
+        syncApiUI();
+      }
+    } catch (e) {}
+  }
+  checkConnection();
+})();
+</script>
+</body>
+</html>
