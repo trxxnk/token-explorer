@@ -34,51 +34,72 @@ button:disabled{cursor:default;opacity:.5}
 input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%}
 textarea{resize:vertical}
 
-#app{display:grid;grid-template-columns:248px minmax(0,1fr) auto;height:100%}
+#app{display:grid;grid-template-columns:256px minmax(0,1fr) auto;height:100%}
+.cap{font:600 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
 /* sidebar */
 #side{background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
-.brand{padding:18px 16px 10px;font:600 17px/1.1 var(--serif);letter-spacing:.01em}
-.brand small{display:block;font:12px var(--sans);color:var(--muted);margin-top:4px}
-.newchat{margin:6px 12px 10px;padding:9px;border-radius:9px;border:1px dashed var(--line);background:transparent;text-align:left}
+.brand{display:flex;align-items:center;gap:11px;padding:16px 16px 14px}
+.mark{display:flex;align-items:flex-end;gap:2px;width:20px;height:20px;flex:none}
+.mark i{flex:1;border-radius:2px;background:var(--accent)}
+.mark i:nth-child(1){height:100%}
+.mark i:nth-child(2){height:60%;opacity:.7}
+.mark i:nth-child(3){height:30%;opacity:.45}
+.brand b{display:block;font:600 16.5px/1.1 var(--serif);letter-spacing:.01em}
+.brand small{display:block;font:11.5px var(--sans);color:var(--muted);margin-top:3px}
+.newchat{margin:0 12px 14px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);text-align:left;font-weight:500}
 .newchat:hover{border-color:var(--accent);color:var(--accent)}
-#chatList{flex:1;overflow:auto;padding:0 8px}
-.chatItem{display:flex;align-items:center;gap:4px;border-radius:8px;padding:2px 2px 2px 10px}
-.chatItem.on{background:var(--panel)}
-.chatItem button.t{flex:1;background:none;border:0;text-align:left;padding:7px 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.chatItem button.x{background:none;border:0;color:var(--muted);padding:4px 8px;border-radius:6px;opacity:0}
-.chatItem:hover button.x{opacity:1}
+#side .cap{padding:0 16px 6px}
+#chatList{flex:1;overflow:auto;padding:0 8px;display:flex;flex-direction:column;gap:2px}
+.chatItem{display:flex;align-items:center;border-radius:10px;border:1px solid transparent}
+.chatItem:hover{background:var(--accent-soft)}
+.chatItem.on{background:var(--panel);border-color:var(--line)}
+.chatItem button.t{flex:1;min-width:0;background:none;border:0;text-align:left;padding:7px 4px 7px 10px}
+.chatItem .ti{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.chatItem .me{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.chatItem button.x{background:none;border:0;color:var(--muted);padding:6px 9px;border-radius:6px;opacity:0}
+.chatItem:hover button.x,.chatItem button.x:focus-visible{opacity:1}
 .chatItem button.x:hover{color:var(--err)}
-.sideFoot{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:6px}
-.sideFoot button{flex:1;background:none;border:1px solid var(--line);border-radius:8px;padding:6px;color:var(--muted)}
+.sideFoot{padding:10px 12px;border-top:1px solid var(--line)}
+.sideFoot button{width:100%;background:none;border:1px solid var(--line);border-radius:9px;padding:7px;color:var(--muted)}
+.sideFoot button:hover{color:var(--ink);border-color:var(--muted)}
 
 /* main */
-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+main{display:flex;flex-direction:column;min-width:0;min-height:0;container-type:inline-size}
+/* the middle column gets narrow when both side panels are open: drop the secondary labels first */
+@container (max-width:680px){header .cap,.modelChip small{display:none}}
+@container (max-width:520px){.seg button{padding:5px 7px}}
 header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
 .burger{display:none;background:none;border:0;font-size:18px;padding:4px 8px}
-.modelChip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 12px;max-width:340px;min-width:0}
-.modelChip span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.modelChip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 12px;max-width:380px;min-width:0;cursor:pointer}
+.modelChip:hover{border-color:var(--muted)}
+.modelChip span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:500;min-width:3ch}
+.modelChip small{color:var(--muted);font-size:12px;white-space:nowrap;flex:none}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
 .dot.ok{background:var(--ok)} .dot.err{background:var(--err)}
 .spacer{flex:1}
-.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:2px}
-.seg button{background:none;border:0;padding:5px 10px;border-radius:7px;color:var(--muted);font-size:13px}
+header .cap{flex:none}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:2px}
+.seg button{background:none;border:0;padding:5px 10px;border-radius:8px;color:var(--muted);font-size:13px}
+.seg button:hover:not(.on){color:var(--ink)}
 .seg button.on{background:var(--accent);color:#fff}
 .seg button,.gear{white-space:nowrap}
 .seg,.gear{flex:none}
-.gear{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:5px 11px}
+.gear{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 11px}
 .gear.on{border-color:var(--accent);color:var(--accent)}
 .legend{display:flex;align-items:center;gap:8px;padding:6px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
-.legend .bar{width:120px;height:8px;border-radius:4px}
+.legend .bar{width:120px;height:8px;border-radius:4px;flex:none}
 
-#messages{flex:1;overflow:auto;padding:24px 16px 40px}
-.thread{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:26px}
-.msg.user{align-self:flex-end;max-width:82%;background:var(--panel);border:1px solid var(--line);border-radius:16px 16px 4px 16px;padding:10px 14px;white-space:pre-wrap;word-wrap:break-word}
+#messages{flex:1;overflow:auto;padding:28px 16px 40px}
+.thread{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+.msg.user{align-self:flex-end;max-width:82%;background:var(--accent-soft);border-radius:16px 16px 4px 16px;padding:10px 15px;white-space:pre-wrap;word-wrap:break-word;font-size:15px}
 .msg.assistant{font:16.5px/1.7 var(--serif)}
-.mrow{display:flex;align-items:center;gap:8px;margin-bottom:6px;font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
-.variants{display:inline-flex;align-items:center;gap:2px}
-.variants button{background:none;border:0;color:var(--muted);padding:0 5px;font-size:15px}
+.mrow{display:flex;align-items:center;gap:6px 10px;margin-bottom:8px;font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
+.who{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink)}
+.who .mark{width:13px;height:13px;gap:1.5px}
+.variants{display:inline-flex;align-items:center;gap:1px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:0 2px}
+.variants button{background:none;border:0;color:var(--muted);padding:1px 7px;font-size:15px;border-radius:6px}
 .variants button:hover:not(:disabled){color:var(--accent)}
-.badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:2px 8px;border:0;font:12.5px var(--sans)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:2px 9px;border:0;font:12.5px var(--sans)}
 .badge code{font:12px var(--mono)}
 .answer,.thinkBody{white-space:pre-wrap;word-wrap:break-word}
 .tok{border-radius:3px;cursor:pointer;transition:background-color .15s}
@@ -89,38 +110,52 @@ header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:
 .tok.flash{animation:flash 1.2s}
 @keyframes flash{0%,60%{outline:3px solid var(--accent)}}
 .lead{display:none}
-details.think{border-left:2px solid var(--line);padding:2px 0 2px 14px;margin:4px 0 12px;color:var(--muted);font-size:14.5px;line-height:1.6}
-details.think summary{font:13px var(--sans);cursor:pointer;margin-bottom:4px;list-style:none}
+details.think{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 14px;margin:0 0 14px;color:var(--muted);font-size:14.5px;line-height:1.6}
+details.think summary{font:500 13px var(--sans);cursor:pointer;list-style:none}
+details.think[open] summary{margin-bottom:6px}
+details.think summary::-webkit-details-marker{display:none}
 details.think summary::before{content:"▸ ";}
 details.think[open] summary::before{content:"▾ ";}
 .caret{display:inline-block;width:8px;height:1.05em;background:var(--accent);vertical-align:text-bottom;margin-left:2px;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
-.mfoot{display:flex;align-items:center;gap:12px;margin-top:8px;font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
-.mfoot button{background:none;border:0;color:var(--muted);padding:2px 0}
-.mfoot button:hover:not(:disabled){color:var(--accent)}
-.errBox{font:13px var(--sans);color:var(--err);background:rgba(197,48,48,.08);border-radius:8px;padding:8px 10px;margin-top:6px}
+.mfoot{display:flex;align-items:center;gap:8px 14px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
+.mstats{display:flex;flex-wrap:wrap;gap:4px 14px;font-variant-numeric:tabular-nums}
+.mstats b{color:var(--ink);font-weight:600}
+.macts{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.macts button{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 10px;color:var(--ink);font-size:12.5px}
+.macts button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.macts .done{align-self:center;padding:0 4px}
+.errBox{font:13px var(--sans);color:var(--err);background:rgba(197,48,48,.08);border-radius:10px;padding:9px 12px;margin-top:8px}
 .warn{max-width:760px;margin:0 auto 18px;font-size:13px;background:rgba(var(--hot),.1);border-radius:10px;padding:10px 12px}
 
 /* empty */
-.empty{max-width:560px;margin:8vh auto 0;text-align:left}
-.empty h1{font:600 34px/1.15 var(--serif);margin:0 0 10px}
-.empty h1 .demo .tok{padding:0 1px}
-.empty p{color:var(--muted);font-size:15px;margin:0 0 18px}
-.empty ol{padding-left:20px;color:var(--muted);margin:0 0 22px}
-.empty ol li{margin-bottom:6px}
+.empty{max-width:700px;margin:5vh auto 0}
+.empty h1{font:600 38px/1.15 var(--serif);margin:0 0 12px;text-wrap:balance}
+.empty h1 .demo .tok{padding:0 2px;cursor:default}
+.empty > p{color:var(--muted);font-size:16px;margin:0;max-width:56ch}
+.need{display:flex;align-items:center;gap:12px;background:rgba(var(--hot),.1);border-radius:12px;padding:10px 14px;margin:0 0 22px;font-size:13.5px}
+.need button{flex:none;margin-left:auto;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 11px}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px 0;padding:0;list-style:none;counter-reset:how}
+.how li{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px 14px;font-size:13px;color:var(--muted);counter-increment:how}
+.how li::before{content:counter(how);display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:600 12px var(--sans);margin-bottom:9px}
+.how li b{display:block;color:var(--ink);font-size:14px;margin-bottom:3px}
+.empty .cap{margin-bottom:9px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chips button{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:7px 13px}
-.chips button:hover{border-color:var(--accent)}
+.chips button{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:7px 14px}
+.chips button:hover{border-color:var(--accent);color:var(--accent)}
+@media (max-width:700px){.how{grid-template-columns:1fr}}
 
 /* composer */
-.composer{padding:10px 16px 16px}
-.cbox{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 14px}
+.composer{padding:10px 16px 14px}
+.cbox{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:8px 8px 8px 16px;box-shadow:0 2px 14px rgba(10,20,40,.08)}
 .cbox:focus-within{border-color:var(--accent)}
-.cbox textarea{border:0;padding:6px 0;resize:none;max-height:200px;background:transparent;font-size:15px}
+.cbox textarea{border:0;padding:7px 0;resize:none;max-height:200px;background:transparent;font-size:15px}
 .cbox textarea:focus{outline:none}
-.send{flex:none;width:38px;height:38px;border-radius:11px;border:0;background:var(--accent);color:#fff;font-size:17px}
+.send{flex:none;width:38px;height:38px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-size:17px}
+.send:hover{filter:brightness(1.08)}
 .send.stop{background:var(--err)}
-.chint{max-width:760px;margin:6px auto 0;font-size:12px;color:var(--muted);padding-left:4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+.chint{max-width:760px;margin:7px auto 0;font-size:12px;color:var(--muted);padding:0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+.chint kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:5px;padding:0 5px;background:var(--panel)}
 .steps{display:inline-flex;align-items:center;gap:3px;margin-left:auto}
 .steps button{background:none;border:1px solid transparent;border-radius:12px;padding:1px 8px;color:var(--muted);font-size:12px}
 .steps button:hover{border-color:var(--line)}
@@ -214,32 +249,40 @@ button.alt.rest:hover code{color:var(--accent)}
 .custom button:hover:not(:disabled),.reroll:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
 .phint{margin-top:9px;color:var(--muted);font-size:11.5px}
 
-/* drawer */
-#drawer{width:340px;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+/* settings panel */
+#drawer{width:344px;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
 #drawer[hidden]{display:none}
-.dh{display:flex;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line)}
-.dh h2{font:600 18px var(--serif);margin:0;flex:1}
-.dh button{background:none;border:0;font-size:16px;color:var(--muted)}
-.db{overflow:auto;padding:6px 18px 30px}
-.db section{padding:12px 0;border-bottom:1px solid var(--line)}
-.db h3{font:600 14px var(--sans);margin:4px 0 10px}
-.db label{display:block;margin-bottom:10px;color:var(--muted);font-size:12.5px}
+.dh{display:flex;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
+.dh h2{font:600 16.5px var(--serif);margin:0;flex:1}
+.dh button{background:none;border:0;font-size:15px;color:var(--muted);border-radius:6px;padding:2px 6px}
+.dh button:hover{background:var(--panel2)}
+.db{overflow:auto;padding:0 18px 30px}
+.db section{padding:16px 0 8px;border-bottom:1px solid var(--line)}
+.db section:last-child{border-bottom:0}
+.db h3{font:600 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.db label{display:block;margin-bottom:11px;color:var(--muted);font-size:12.5px}
 .db label > input,.db label > select,.db label > textarea,.db label > .row{margin-top:4px;color:var(--ink)}
+.db input:focus,.db select:focus,.db textarea:focus{outline:none;border-color:var(--accent)}
 .db .rng span{display:flex;justify-content:space-between}
 .db .rng b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
 .db label.off{opacity:.45}
 .db input[type=range]{padding:0;border:0;accent-color:var(--accent)}
 .db .chk{display:flex;gap:8px;align-items:flex-start;color:var(--ink);font-size:13px}
-.db .chk input{width:auto;margin-top:3px}
-.db .chk small{display:block;color:var(--muted)}
+.db .chk input{width:auto;margin-top:3px;accent-color:var(--accent)}
+.db .chk small{display:block;color:var(--muted);margin-top:1px}
 .row{display:flex;gap:6px}
 .row button{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:0 11px}
-.presets{display:flex;gap:6px;margin-bottom:10px}
-.presets button{flex:1;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px}
-.presets button:hover{border-color:var(--accent)}
-.hint{font-size:12px;color:var(--muted);margin:2px 0 0}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.presets button{display:block;text-align:left;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:7px 9px;min-width:0}
+.presets button b{display:block;font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.presets button small{display:block;color:var(--muted);font-size:11px}
+.presets button:hover{border-color:var(--muted)}
+.presets button.on{border-color:var(--accent);background:var(--accent-soft)}
+.presets button.on b{color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin:2px 0 0;line-height:1.45}
 .hint.err{color:var(--err)} .hint.ok{color:var(--ok)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid2 .wide{grid-column:1 / -1}
 
 @media (max-width:1100px){
   #drawer{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100vw;z-index:40;box-shadow:-10px 0 40px rgba(10,20,40,.15)}
@@ -250,6 +293,7 @@ button.alt.rest:hover code{color:var(--accent)}
   #app.sideOpen #side{transform:none}
   .burger{display:block}
   .seg button{padding:5px 7px}
+  header .cap{display:none}
   .modelChip{max-width:150px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -258,19 +302,21 @@ button.alt.rest:hover code{color:var(--accent)}
 <body>
 <div id="app">
   <aside id="side">
-    <div class="brand">Token Explorer<small>что модель могла сказать иначе</small></div>
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Token Explorer</b><small>что модель могла сказать иначе</small></div></div>
     <button class="newchat" id="newChat">+ Новый чат</button>
+    <div class="cap">Чаты</div>
     <div id="chatList"></div>
-    <div class="sideFoot"><button id="exportBtn" title="Сохранить текущий чат со всеми ветками в JSON">Экспорт</button></div>
+    <div class="sideFoot"><button id="exportBtn" title="Сохранить открытый чат со всеми ветками в файл JSON">Сохранить чат в файл</button></div>
   </aside>
 
   <main>
     <header>
       <button class="burger" id="burger" aria-label="Чаты">☰</button>
-      <div class="modelChip" id="modelChip" title="Сервер и модель"><i class="dot" id="connDot"></i><span id="modelName">нет подключения</span></div>
+      <div class="modelChip" id="modelChip" title="Сервер и модель. Клик открывает настройки"><i class="dot" id="connDot"></i><span id="modelName">нет подключения</span><small id="apiName"></small></div>
       <div class="spacer"></div>
+      <span class="cap">Подсветка</span>
       <div class="seg" id="heatSeg" role="group" aria-label="Тепловая карта">
-        <button data-heat="off">Без карты</button>
+        <button data-heat="off">Нет</button>
         <button data-heat="uncertain">Сомнения</button>
         <button data-heat="gradient">Градиент</button>
         <button data-heat="entropy">Энтропия</button>
@@ -281,7 +327,7 @@ button.alt.rest:hover code{color:var(--accent)}
     <div id="messages"></div>
     <div class="composer">
       <div class="cbox">
-        <textarea id="input" rows="1" placeholder="Напишите сообщение…"></textarea>
+        <textarea id="input" rows="1" placeholder="Спросите модель о чём-нибудь…"></textarea>
         <button class="send" id="sendBtn" aria-label="Отправить">↑</button>
       </div>
       <div class="chint"><span id="hintText"></span><span class="steps" id="steps" title="Сколько токенов генерировать за один раз. Tab — следующий шаг"></span></div>
@@ -294,9 +340,9 @@ button.alt.rest:hover code{color:var(--accent)}
     <section>
       <h3>Подключение</h3>
       <div class="presets">
-        <button data-preset="lms">LM Studio :1234</button>
-        <button data-preset="llama">llama.cpp :8080</button>
-        <button data-preset="te">Свой сервер :8090</button>
+        <button data-preset="lms"><b>LM Studio</b><small>порт 1234</small></button>
+        <button data-preset="llama"><b>llama.cpp</b><small>порт 8080</small></button>
+        <button data-preset="te"><b>Свой сервер</b><small>порт 8090</small></button>
       </div>
       <label>Адрес сервера<input data-k="baseUrl" type="text" spellcheck="false"></label>
       <label>Протокол
@@ -315,7 +361,7 @@ button.alt.rest:hover code{color:var(--accent)}
       <p class="hint" id="connHint"></p>
     </section>
     <section>
-      <h3>Формат диалога</h3>
+      <h3>Диалог</h3>
       <label>Шаблон
         <select data-k="template">
           <option value="chatml">ChatML: Qwen, Bonsai и большинство моделей</option>
@@ -326,10 +372,10 @@ button.alt.rest:hover code{color:var(--accent)}
       </label>
       <p class="hint" id="tplHint" style="margin:-4px 0 10px" hidden>В этом протоколе шаблон применяет сам сервер, настройка не используется.</p>
       <label>Системный промпт<textarea data-k="system" rows="3"></textarea></label>
-      <label>Размышления (Qwen3 и похожие)
+      <label>Размышления перед ответом
         <select data-k="thinking">
-          <option value="auto">Как решит модель</option>
-          <option value="off">Отключить, сразу отвечать</option>
+          <option value="auto">Разрешить, как решит модель</option>
+          <option value="off">Выключить, сразу отвечать</option>
         </select>
       </label>
     </section>
@@ -342,15 +388,15 @@ button.alt.rest:hover code{color:var(--accent)}
       <label class="rng"><span>Штраф за повторы <b data-v="repeat_penalty"></b></span><input type="range" data-k="repeat_penalty" min="1" max="1.5" step="0.01"></label>
       <p class="hint" id="sampHint" style="margin:-2px 0 10px" hidden>/v1/responses учитывает только Temperature и Top-P. Top-K, Min-P, штраф за повторы и seed сервер игнорирует: для них выберите протокол /v1/chat/completions.</p>
       <div class="grid2">
-        <label>Макс. токенов<input type="number" data-k="max_tokens" min="16" max="8192"></label>
-        <label>Seed (−1 случайный)<input type="number" data-k="seed"></label>
-        <label title="Модель генерирует столько токенов и ждёт; Tab — следующий шаг. 0 — весь ответ сразу">Шаг генерации, ток. (0 — весь ответ)<input type="number" data-k="tab_tokens" min="0" max="512"></label>
+        <label>Лимит ответа, ток.<input type="number" data-k="max_tokens" min="16" max="8192"></label>
+        <label>Seed (−1 — случайный)<input type="number" data-k="seed"></label>
+        <label class="wide" title="Модель генерирует столько токенов и ждёт; Tab — следующий шаг">Шаг генерации, ток. (0 — весь ответ сразу)<input type="number" data-k="tab_tokens" min="0" max="512"></label>
       </div>
     </section>
     <section>
       <h3>Отображение</h3>
-      <label class="rng"><span>Сколько альтернатив запрашивать <b data-v="n_probs"></b></span><input type="range" data-k="n_probs" min="2" max="20" step="1"></label>
-      <label class="rng"><span>Порог «сомнения» <b data-v="threshold"></b></span><input type="range" data-k="threshold" min="0.1" max="0.99" step="0.01"></label>
+      <label class="rng"><span>Кандидатов на каждый токен <b data-v="n_probs"></b></span><input type="range" data-k="n_probs" min="2" max="20" step="1"></label>
+      <label class="rng"><span>Порог подсветки «сомнения» <b data-v="threshold"></b></span><input type="range" data-k="threshold" min="0.1" max="0.99" step="0.01"></label>
       <label class="chk"><input type="checkbox" data-k="showSpecial"><span>Показывать служебные токены<small>&lt;/think&gt;, &lt;|im_end|&gt; и подобные. Заменив такой токен другим кандидатом, можно заставить модель рассуждать или отвечать дальше.</small></span></label>
       <label class="chk"><input type="checkbox" data-k="postSampling"><span>Вероятности после сэмплеров<small>Только для нативного llama.cpp. Обрезанное top-k/top-p распределение перенормируется, поэтому уверенность выглядит выше реальной.</small></span></label>
     </section>
@@ -679,14 +725,15 @@ async function checkConnection() {
     const j = await r.json();
     models = (j.data || j.models || []).map(m => m.id || m.name).filter(Boolean);
     if (!settings.model && models[0]) { settings.model = models[0]; saveSettings(); }
-    dot.className = 'dot ok'; hint.className = 'hint ok';
+    connOk = true; dot.className = 'dot ok'; hint.className = 'hint ok';
     hint.textContent = `Сервер на связи, моделей: ${models.length}.`;
   } catch (e) {
-    models = [];
+    models = []; connOk = false;
     dot.className = 'dot err'; hint.className = 'hint err';
     hint.textContent = 'Нет ответа от сервера. Проверьте, что он запущен, и что в LM Studio включён CORS (Developer, Server Settings).';
   }
   fillModels(); renderHeader();
+  if (!busy && !(chat() && pathNodes(chat()).length)) renderMessages();
 }
 function fillModels() {
   const sel = $('#modelSel'); sel.innerHTML = '';
@@ -811,13 +858,21 @@ function heatBg(t) {
 
 /* ---------- rendering ---------- */
 function renderAll() { renderSidebar(); renderHeader(); renderMessages(); renderComposer(); }
+const fmtDay = ts => {
+  if (!ts) return '';
+  const d = new Date(ts), day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), ago = Math.round((day(new Date()) - day(d)) / 864e5);
+  return ago === 0 ? 'сегодня' : ago === 1 ? 'вчера' : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+};
 function renderSidebar() {
   const list = $('#chatList'); list.innerHTML = '';
   for (const id of db.order) {
     const c = db.chats[id]; if (!c) continue;
+    const answers = Object.values(c.nodes).filter(n => n.role === 'assistant').length;
     list.append(h('div', { class: 'chatItem' + (id === db.current ? ' on' : '') },
-      h('button', { class: 't', title: c.title, onclick: () => { if (busy) return; db.current = id; saveDb(); closePop(true); $('#app').classList.remove('sideOpen'); renderAll(); } }, c.title),
-      h('button', { class: 'x', title: 'Удалить чат', onclick: () => {
+      h('button', { class: 't', title: c.title, onclick: () => { if (busy) return; db.current = id; saveDb(); closePop(true); $('#app').classList.remove('sideOpen'); renderAll(); } },
+        h('span', { class: 'ti' }, c.title),
+        h('span', { class: 'me' }, [answers ? `ответов и веток: ${answers}` : 'пока пусто', fmtDay(c.created)].filter(Boolean).join(' · '))),
+      h('button', { class: 'x', title: 'Удалить чат', 'aria-label': 'Удалить чат', onclick: () => {
         if (busy || !confirm(`Удалить «${c.title}»?`)) return;
         delete db.chats[id]; db.order = db.order.filter(x => x !== id);
         if (db.current === id) db.current = db.order[0] || null;
@@ -825,25 +880,28 @@ function renderSidebar() {
       } }, '✕')));
   }
 }
+const API_NAMES = { responses: 'LM Studio', chat: 'LM Studio', openai: 'OpenAI API', llamacpp: 'llama.cpp', explorer: 'свой сервер' };
 function renderHeader() {
   $('#modelName').textContent = settings.model || 'модель не выбрана';
+  $('#apiName').textContent = API_NAMES[settings.api] || '';
   document.querySelectorAll('#heatSeg button').forEach(b => b.classList.toggle('on', b.dataset.heat === settings.heat));
   const lg = $('#legend');
   const m = settings.heat;
   lg.style.display = m === 'off' ? 'none' : 'flex';
   const c = hotRGB;
-  if (m === 'uncertain') lg.innerHTML = `<span>Подсвечены токены, где модель была уверена меньше чем на ${Math.round(settings.threshold * 100)}%</span><i class="bar" style="background:linear-gradient(90deg,rgba(${c},.66),rgba(${c},.16))"></i><span>чем ярче, тем больше сомнений</span>`;
+  if (m === 'uncertain') lg.innerHTML = `<span>Подсвечены места, где модель была уверена меньше чем на ${Math.round(settings.threshold * 100)}%</span><i class="bar" style="background:linear-gradient(90deg,rgba(${c},.66),rgba(${c},.16))"></i><span>чем ярче, тем больше сомнений</span>`;
   if (m === 'gradient') lg.innerHTML = `<span>Вероятность выбранного токена</span><span>0%</span><i class="bar" style="background:linear-gradient(90deg,hsla(0,70%,50%,.5),hsla(60,70%,50%,.5),hsla(120,70%,50%,.5))"></i><span>100%</span>`;
-  if (m === 'entropy') lg.innerHTML = `<span>Разброс среди кандидатов: подсвечены места, где было из чего выбирать, даже если победитель лидировал</span>`;
+  if (m === 'entropy') lg.innerHTML = `<span>Подсвечены места, где у модели было много близких вариантов, даже если один из них лидировал</span>`;
 }
 function renderComposer() {
   const b = $('#sendBtn');
   b.classList.toggle('stop', busy); b.textContent = busy ? '■' : '↑';
   b.setAttribute('aria-label', busy ? 'Остановить' : 'Отправить');
   const step = stepSize();
-  $('#hintText').textContent = 'Наведите на слово — увидите альтернативы, клик откроет подробности. ' + (step ? `Tab — следующие ${step} ток.` : 'Tab — продолжить ответ.');
+  const hint = $('#hintText'); hint.innerHTML = '';
+  hint.append('Наведите на слово в ответе, клик откроет подробности. ', h('kbd', null, 'Tab'), step ? ` — следующие ${step} ток.` : ' — продолжить ответ.');
   const box = $('#steps'); box.innerHTML = '';
-  box.append('Шаг:');
+  box.append('Шаг генерации:');
   for (const v of [0, 1, 8, 16, 32, 64]) box.append(h('button', { class: v === step ? 'on' : '', onclick: () => setStep(v) }, v ? String(v) : 'весь ответ'));
   if (step && ![1, 8, 16, 32, 64].includes(step)) box.append(h('button', { class: 'on' }, String(step)));
 }
@@ -852,19 +910,24 @@ function setStep(v) {
   document.querySelector('[data-k=tab_tokens]').value = v;
   renderComposer(); renderMessages();
 }
+let connOk = null;                                     // null until the first check finishes
 function emptyState() {
   const demo = [['Модель', .98], [' выбирает', .71], [' слово', .34], [' за', .9], [' словом', .97]];
   const title = h('h1', null, h('span', { class: 'demo' }, demo.map(([t, p]) => {
-    const s = h('span', { class: 'tok' }, t);
+    const s = h('span', { class: 'tok', title: `уверенность ${Math.round(p * 100)}%` }, t);
     s.style.background = p < 0.6 ? `rgba(${hotRGB},${(0.16 + 0.5 * (1 - p / 0.6)).toFixed(2)})` : '';
     return s;
   })));
-  return h('div', { class: 'empty' }, title,
-    h('p', null, 'Здесь видно, из каких вариантов модель выбирала каждый токен, и можно пойти по другой дороге.'),
-    h('ol', null,
-      h('li', null, 'Запустите сервер в LM Studio или llama.cpp и выберите модель в настройках.'),
-      h('li', null, 'Наведите на слово в ответе: появятся кандидаты с вероятностями.'),
-      h('li', null, 'Кликните по другому кандидату, и ответ продолжится от него новой веткой.')),
+  return h('div', { class: 'empty' },
+    connOk === false ? h('div', { class: 'need' }, 'Нет связи с сервером модели. Запустите его и проверьте адрес.',
+      h('button', { onclick: () => showPanel(true) }, 'Открыть настройки')) : null,
+    title,
+    h('p', null, 'У каждого слова ответа были соперники. Здесь видно, из чего выбирала модель, насколько она сомневалась и что было бы, выбери она иначе.'),
+    h('ol', { class: 'how' },
+      h('li', null, h('b', null, 'Подключите модель'), 'Запустите LM Studio или свой сервер и выберите модель в настройках справа.'),
+      h('li', null, h('b', null, 'Задайте вопрос'), 'Ответ появится по токенам. Места, где модель сомневалась, будут подсвечены.'),
+      h('li', null, h('b', null, 'Загляните в токен'), 'Кликните по слову и выберите другой вариант: ответ пойдёт новой веткой.')),
+    h('div', { class: 'cap' }, 'Попробуйте'),
     h('div', { class: 'chips' }, ['Расскажи короткую сказку про кота', 'Придумай название для кофейни', 'Сколько будет 17 × 23? Объясни'].map(q =>
       h('button', { onclick: () => send(q) }, q))));
 }
@@ -916,6 +979,8 @@ function renderUser(c, n) {
 function renderAssistant(c, n) {
   const wrap = h('div', { class: 'msg assistant', 'data-node': n.id });
   const row = h('div', { class: 'mrow' });
+  row.append(h('span', { class: 'who', title: n.params && n.params.model ? 'Модель, которая написала этот ответ' : null },
+    h('span', { class: 'mark', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), ((n.params && n.params.model) || settings.model || 'Модель').split('/').pop()));
   const vb = variantBar(c, n); if (vb) row.append(vb);
   if (n.branch) {
     const b = n.branch;
@@ -924,7 +989,7 @@ function renderAssistant(c, n) {
       : h('button', { class: 'badge', title: 'Показать место', onclick: () => flashTok(n.id, b.pos) }, '✎ замена ', h('code', null, vis(b.from)), ' на ', h('code', null, vis(b.to)), ` в токене №${b.pos + 1}`);
     row.append(badge);
   }
-  if (row.childNodes.length) wrap.append(row);
+  wrap.append(row);
 
   const toks = n.tokens;
   const full = toks.map(t => t.t).join('');
@@ -969,17 +1034,21 @@ function renderAssistant(c, n) {
     const withP = toks.filter(t => !t.np && t.p != null && !t.manual);
     const avg = withP.length ? withP.reduce((a, t) => a + t.p, 0) / withP.length : null;
     const unsure = withP.filter(t => t.p < settings.threshold).length;
-    const foot = h('div', { class: 'mfoot' });
-    const bits = [`${toks.length} ток.`];
-    if (n.stats && n.stats.gen) bits.push(`${n.stats.tps.toFixed(1)} ток/с`);
-    if (avg != null) bits.push(`средняя уверенность ${pct(avg)}`, `сомнений: ${unsure}`);
-    if (n.stopped) bits.push('остановлено');
-    foot.append(h('span', null, bits.join(', ')));
-    if (lastAssistant(c) === n) foot.append(isEnded(n)
-      ? h('span', { title: 'Чтобы продолжить, замените токен конца ответа другим кандидатом или напишите новое сообщение' }, 'ответ завершён')
+    const foot = h('div', { class: 'mfoot' }), stats = h('div', { class: 'mstats' }), acts = h('div', { class: 'macts' });
+    const stat = (v, label, title) => stats.append(h('span', { title }, h('b', null, v), ' ' + label));
+    stat(toks.length, 'ток.', 'Сколько токенов в ответе');
+    if (n.stats && n.stats.gen) stat(n.stats.tps.toFixed(1), 'ток/с', 'Скорость последней генерации');
+    if (avg != null) {
+      stat(pct(avg), 'уверенность', 'Средняя вероятность выбранных токенов');
+      stat(unsure, 'сомнений', `Токенов с вероятностью ниже порога ${Math.round(settings.threshold * 100)}%`);
+    }
+    if (n.stopped) stats.append(h('span', null, 'остановлено'));
+    if (lastAssistant(c) === n) acts.append(isEnded(n)
+      ? h('span', { class: 'done', title: 'Чтобы продолжить, замените токен конца ответа другим кандидатом или напишите новое сообщение' }, 'ответ завершён')
       : h('button', { disabled: busy, title: 'Дописать этот ответ. Клавиша Tab', onclick: continueLast }, stepSize() ? `⇥ Ещё ${stepSize()} ток.` : '⇥ Продолжить'));
-    foot.append(h('button', { disabled: busy, onclick: () => branchAt(n.id, 0, null) }, '↻ Новый вариант'));
-    foot.append(h('button', { onclick: e => { navigator.clipboard && navigator.clipboard.writeText(stripThink(tokensText(toks))); e.target.textContent = 'Скопировано'; } }, 'Копировать'));
+    acts.append(h('button', { disabled: busy, title: 'Сгенерировать ответ заново отдельной веткой', onclick: () => branchAt(n.id, 0, null) }, '↻ Другой вариант'));
+    acts.append(h('button', { title: 'Скопировать текст ответа без размышлений', onclick: e => { navigator.clipboard && navigator.clipboard.writeText(stripThink(tokensText(toks))); e.target.textContent = '✓ Скопировано'; } }, 'Копировать'));
+    foot.append(stats, acts);
     wrap.append(foot);
   }
   return wrap;
@@ -1345,6 +1414,9 @@ function syncApiUI() {
   off('template', lms);
   ['top_k', 'min_p', 'repeat_penalty', 'seed'].forEach(k => off(k, resp));
   off('postSampling', settings.api !== 'llamacpp');
+  const port = (settings.baseUrl.match(/:(\d+)\/?$/) || [])[1];
+  const cur = port === '1234' && lms && !isEx() ? 'lms' : port === '8080' && settings.api === 'llamacpp' ? 'llama' : port === '8090' && isEx() ? 'te' : '';
+  document.querySelectorAll('[data-preset]').forEach(b => b.classList.toggle('on', b.dataset.preset === cur));
 }
 let connT;
 document.querySelectorAll('[data-k]').forEach(el => {
@@ -1355,7 +1427,7 @@ document.querySelectorAll('[data-k]').forEach(el => {
     settings[k] = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.type === 'number') ? Number(el.value) : el.value;
     saveSettings(); syncLabels();
     if (k === 'baseUrl' || k === 'api') { clearTimeout(connT); connT = setTimeout(checkConnection, 500); }
-    if (k === 'api') syncApiUI();
+    if (k === 'api' || k === 'baseUrl') syncApiUI();
     if (['threshold', 'showSpecial', 'tab_tokens'].includes(k)) { renderHeader(); renderMessages(); renderComposer(); }
   });
 });
