@@ -19,6 +19,7 @@
   --hot:255,110,60; --warn:#e0a84a; --ok:#3fc27a;
 }}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 /* scrollbars in the colours of the theme, everywhere */
 :root{color-scheme:light dark}
 *{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
@@ -160,6 +161,77 @@ details.think[open] summary::before{content:"▾ ";}
 .steps button{background:none;border:1px solid transparent;border-radius:12px;padding:1px 8px;color:var(--muted);font-size:12px}
 .steps button:hover{border-color:var(--line)}
 .steps button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+/* decision mode */
+.newrow{display:flex;gap:6px;margin:0 12px 14px}
+.newrow .newchat{margin:0;flex:1;white-space:nowrap}
+.dmode header .seg,.dmode header .cap,.dmode .legend{display:none!important}
+.dform{max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 14px 12px;box-shadow:0 2px 14px rgba(10,20,40,.08);max-height:52vh;overflow:auto}
+.dform label,.dlabel{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+.dlabel{margin-bottom:4px}
+.dform textarea,.dform input[type=text]{margin-top:3px;font-size:14px;background:var(--bg)}
+.dform textarea:focus,.dform input:focus{outline:none;border-color:var(--accent)}
+.dopts{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.dopt{display:flex;align-items:center;gap:6px}
+.lb{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:var(--accent-soft);color:var(--accent);font:600 12.5px var(--mono)}
+.dopt input{margin:0}
+.dopt button{flex:none;background:none;border:1px solid var(--line);border-radius:8px;width:28px;height:28px;color:var(--muted);padding:0}
+.dopt button:hover:not(:disabled){color:var(--ink);border-color:var(--muted)}
+.dbar{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;position:sticky;bottom:-12px;background:var(--panel);padding:8px 0 12px;margin-bottom:-12px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@container (max-width:620px){.dgrid{grid-template-columns:1fr}}
+.dsum{flex:1 1 200px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:15px var(--serif)}
+.dopts + .dadd{margin-bottom:8px}
+.dadd{background:none;border:1px dashed var(--line);border-radius:8px;height:28px;padding:0 10px;color:var(--muted)}
+.dadd:hover:not(:disabled){color:var(--accent);border-color:var(--accent)}
+.dbar .pre{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}
+.dbar .seg{background:var(--bg)}
+.dbar .seg button{font:12px var(--mono);padding:3px 9px}
+.dbar .pre input{width:104px;margin:0;font:12.5px var(--mono);padding:4px 8px}
+.link{background:none;border:0;color:var(--accent);padding:0;font-size:12px}
+.link:hover{text-decoration:underline}
+.drun{margin-left:auto;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:8px 18px;font-weight:600}
+.drun:hover:not(:disabled){filter:brightness(1.08)}
+.dnote{margin-top:10px;font-size:12.5px;background:rgba(var(--hot),.1);border-radius:10px;padding:8px 11px}
+.run{font:14px/1.5 var(--sans)}
+.rq{font:17px/1.45 var(--serif);margin:0 0 6px;white-space:pre-wrap}
+.rwait{color:var(--muted);font-size:13px}
+.run .verdict{margin:0 0 12px}
+.run .verdict .ans{color:var(--ink);font-weight:600}
+.rstages{max-width:420px}
+.rstages .stg{padding:5px 4px 6px}
+.rtext{margin:9px 0 10px;min-height:6.6em;color:var(--muted);font-size:12.5px;line-height:1.45;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+.rtext b{color:var(--ink);font-weight:600}
+.rtext .fx{align-self:flex-start;padding:4px 10px}
+.drows{display:flex;flex-direction:column;gap:2px}
+.drow{display:grid;grid-template-columns:26px minmax(0,1fr) minmax(90px,200px) 112px;gap:10px;align-items:center;padding:5px 8px;border-radius:10px}
+.drow.win{background:var(--panel)}
+.drow .tx{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.drow .bar{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.drow .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:5px;transition:width .9s cubic-bezier(.3,.7,.2,1)}
+.drow.win .bar i{background:var(--ink)}
+.drow .pp{display:flex;justify-content:flex-end;gap:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.drow .pp b{font-weight:600}
+.drow .pp i{font-style:normal;font-size:11px;color:var(--muted);width:50px;text-align:left}
+.drow .pp i.up{color:var(--ok)}
+.drow .pp i.dn{color:rgb(var(--hot))}
+.drow.rest .lb{background:none;color:var(--muted)}
+.drow.rest .tx{color:var(--muted);font-size:12.5px}
+.drow.rest .bar i{background:var(--muted);opacity:.6}
+.drow.rest .pp b{font-weight:400;color:var(--muted)}
+.others{font-size:12px;color:var(--muted);margin:6px 8px 0}
+.others code{font:12px var(--mono);color:var(--ink);background:var(--panel2);border-radius:5px;padding:0 5px}
+.chk{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+.chk p{margin:5px 0 9px;font-size:13px}
+.chk .scroll{overflow-x:auto}
+.chk table{border-collapse:separate;border-spacing:2px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.chk th{font-weight:500;color:var(--muted);font-size:11.5px;padding:2px 8px;text-align:right;white-space:nowrap}
+.chk th:first-child{text-align:left}
+.chk td{padding:4px 8px;border-radius:6px;text-align:right}
+.chk td.nm{text-align:left;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+details.raw{margin-top:12px;font-size:12.5px;color:var(--muted)}
+details.raw summary{cursor:pointer}
+details.raw pre{font:12px/1.5 var(--mono);color:var(--ink);white-space:pre-wrap;word-break:break-word;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0 0;max-height:260px;overflow:auto}
 
 /* popover: a compact card on hover, the full panel after a click */
 #pop{position:fixed;z-index:50;width:300px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 48px rgba(10,20,40,.26);padding:14px;font:13px/1.45 var(--sans)}
@@ -303,7 +375,10 @@ button.alt.rest:hover code{color:var(--accent)}
 <div id="app">
   <aside id="side">
     <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Token Explorer</b><small>что модель могла сказать иначе</small></div></div>
-    <button class="newchat" id="newChat">+ Новый чат</button>
+    <div class="newrow">
+      <button class="newchat" id="newChat" title="Обычный разговор с моделью">+ Чат</button>
+      <button class="newchat" id="newDecision" title="Вопрос с вариантами: модель выбирает ответ за один проход">+ Решение</button>
+    </div>
     <div class="cap">Чаты</div>
     <div id="chatList"></div>
     <div class="sideFoot"><button id="exportBtn" title="Сохранить открытый чат со всеми ветками в файл JSON">Сохранить чат в файл</button></div>
@@ -330,6 +405,7 @@ button.alt.rest:hover code{color:var(--accent)}
         <textarea id="input" rows="1" placeholder="Спросите модель о чём-нибудь…"></textarea>
         <button class="send" id="sendBtn" aria-label="Отправить">↑</button>
       </div>
+      <div class="dform" id="dform" hidden></div>
       <div class="chint"><span id="hintText"></span><span class="steps" id="steps" title="Сколько токенов генерировать за один раз. Tab — следующий шаг"></span></div>
     </div>
   </main>
@@ -867,11 +943,11 @@ function renderSidebar() {
   const list = $('#chatList'); list.innerHTML = '';
   for (const id of db.order) {
     const c = db.chats[id]; if (!c) continue;
-    const answers = Object.values(c.nodes).filter(n => n.role === 'assistant').length;
+    const answers = Object.values(c.nodes).filter(n => n.role === 'assistant').length, dec = isDecision(c);
     list.append(h('div', { class: 'chatItem' + (id === db.current ? ' on' : '') },
       h('button', { class: 't', title: c.title, onclick: () => { if (busy) return; db.current = id; saveDb(); closePop(true); $('#app').classList.remove('sideOpen'); renderAll(); } },
         h('span', { class: 'ti' }, c.title),
-        h('span', { class: 'me' }, [answers ? `ответов и веток: ${answers}` : 'пока пусто', fmtDay(c.created)].filter(Boolean).join(' · '))),
+        h('span', { class: 'me' }, [dec ? `решение, прогонов: ${c.runs.length}` : answers ? `ответов и веток: ${answers}` : 'пока пусто', fmtDay(c.created)].filter(Boolean).join(' · '))),
       h('button', { class: 'x', title: 'Удалить чат', 'aria-label': 'Удалить чат', onclick: () => {
         if (busy || !confirm(`Удалить «${c.title}»?`)) return;
         delete db.chats[id]; db.order = db.order.filter(x => x !== id);
@@ -894,6 +970,10 @@ function renderHeader() {
   if (m === 'entropy') lg.innerHTML = `<span>Подсвечены места, где у модели было много близких вариантов, даже если один из них лидировал</span>`;
 }
 function renderComposer() {
+  const dec = isDecision(chat());
+  document.querySelector('main').classList.toggle('dmode', dec);
+  document.querySelector('.cbox').hidden = dec; document.querySelector('.chint').hidden = dec; $('#dform').hidden = !dec;
+  if (dec) return renderDForm();
   const b = $('#sendBtn');
   b.classList.toggle('stop', busy); b.textContent = busy ? '■' : '↑';
   b.setAttribute('aria-label', busy ? 'Остановить' : 'Отправить');
@@ -933,6 +1013,7 @@ function emptyState() {
 }
 function renderMessages() {
   const box = $('#messages'); const st = box.scrollTop;
+  if (isDecision(chat())) return renderDecision(box, chat());
   const near = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
   box.innerHTML = '';
   const c = chat(); const path = c ? pathNodes(c) : [];
@@ -1385,12 +1466,258 @@ document.addEventListener('keydown', e => {
   if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
   const a = document.activeElement;
   if (a && a !== document.body && a !== input && a.closest('input,textarea,select,#pop,#drawer')) return;
+  if (isDecision(chat())) return;                      // no composer here, keep normal focus navigation
   e.preventDefault();
   if (busy) return;
   if (input.value.trim()) { const v = input.value; input.value = ''; autosize(); send(v); }
   else continueLast();
 });
 $('#messages').addEventListener('scroll', () => { if (!pop.pinned) closePop(false); });
+
+/* ---------- decision mode ----------
+   An ordinary LLM answers a multiple-choice question in one forward pass: the prompt ends right before the answer,
+   and we read the probabilities of the label tokens ("1", "2", ... or letters) from the next-token distribution.
+   A decision chat is a feed of such runs plus a form (the prompt constructor) instead of the composer. */
+const D_LABELS = {
+  num: { name: '1 2 3', at: k => String(k + 1), how: 'его номером' },
+  lat: { name: 'A B C', at: k => String.fromCharCode(65 + k), how: 'его буквой' },
+  cyr: { name: 'а б в', at: k => 'абвгдежзиклмнопрст'[k] || String(k + 1), how: 'его буквой' }
+};
+const dInstr = scheme => `Выбери один правильный вариант ответа. Ответь только ${D_LABELS[scheme].how}.`;
+const D_TEMPLATE = '{инструкция}\n\nВопрос: {вопрос}\n\nВарианты:\n{варианты}', D_LINE = '{метка}. {текст}';
+const dNewForm = () => ({ instruction: dInstr('num'), question: 'Какая планета ближе всего к Солнцу?', options: ['Венера', 'Меркурий', 'Марс'],
+  labels: 'num', prefix: 'Ответ:', template: D_TEMPLATE, line: D_LINE, adv: false });
+function newDecision() {
+  const id = uid();
+  db.chats[id] = { id, kind: 'decision', title: 'Новое решение', created: Date.now(), nodes: { root: { id: 'root', children: [], active: 0 } }, runs: [], form: dNewForm() };
+  db.order.unshift(id); db.current = id; saveDb(); renderAll();
+}
+const isDecision = c => !!c && c.kind === 'decision';
+const dLabels = f => f.options.map((_, k) => D_LABELS[f.labels].at(k));
+function dPrompt(f) {
+  const labels = dLabels(f);
+  const lines = f.options.map((o, k) => f.line.replace('{метка}', labels[k]).replace('{текст}', o)).join('\n');
+  return { labels, content: f.template.replace('{инструкция}', f.instruction).replace('{вопрос}', f.question).replace('{варианты}', lines) };
+}
+// one pass through the model; everything the card shows is derived from this
+async function dScore(f) {
+  const { labels, content } = dPrompt(f);
+  // a label can be written by several tokens: "1", " 1", "1." ... all of them mean the same answer
+  const spell = l => [...new Set([l, l.toUpperCase(), l.toLowerCase()])].flatMap(x => [x, ' ' + x, x + '.', ' ' + x + '.', x + ')', ' ' + x + ')', '\n' + x]);
+  const res = await fetch(base() + '/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    model: settings.model || undefined, messages: [{ role: 'user', content }], thinking: false,
+    prefix: f.prefix ? [f.prefix] : [], watch: labels.flatMap(spell), n_probs: 12, skip_space: true }) });
+  const j = await res.json().catch(() => ({ error: { message: 'Сервер ответил ' + res.status } }));
+  if (!res.ok || j.error) throw new Error((j.error && j.error.message) || 'Сервер ответил ' + res.status);
+  const key = s => s.replace(/[\s.)]/g, '').toLowerCase(), watched = new Set(j.watch.map(w => w.id));
+  const opts = labels.map(l => {
+    const toks = j.watch.filter(w => key(w.text) === l.toLowerCase()).sort((a, b) => b.p - a.p);
+    return { label: l, one: toks[0] ? toks[0].p : 0, mass: toks.reduce((s, w) => s + w.p, 0), toks: toks.slice(0, 4).map(w => ({ t: w.t, p: +w.p.toPrecision(4), rank: w.rank })) };
+  });
+  const inside = opts.reduce((s, o) => s + o.mass, 0);
+  opts.forEach(o => { o.final = inside > 0 ? o.mass / inside : 1 / opts.length; });
+  return { opts, inside, other: j.top.filter(t => !watched.has(t.id)).slice(0, 5).map(t => ({ t: t.t, p: t.p })), skipped: j.skipped || [],
+    prompt: j.prompt, vocab: j.vocab, H: j.H, seconds: j.seconds, promptTokens: j.prompt_tokens, model: j.model };
+}
+const dValid = f => f.question.trim() && f.options.filter(o => o.trim()).length >= 2 && f.options.every(o => o.trim());
+async function dRun() {
+  const c = chat(); if (busy || !isDecision(c) || !isEx() || !dValid(c.form)) return;
+  const run = { id: uid(), created: Date.now(), form: JSON.parse(JSON.stringify(c.form)), status: 'run' };
+  c.runs.push(run);
+  if (c.title === 'Новое решение') c.title = run.form.question.slice(0, 48);
+  busy = true; renderAll();
+  try { run.result = await dScore(run.form); run.status = 'done'; }
+  catch (e) { run.status = 'error'; run.error = e.message === 'Failed to fetch' ? 'Не удалось связаться с сервером. Он запущен?' : e.message; }
+  busy = false; saveDb(); renderAll();
+}
+// Stability: every option visits every position (cyclic shifts), plus a content-free run that shows what the labels attract by themselves
+async function dCheck(run) {
+  if (busy || !isEx()) return;
+  const f = run.form, n = f.options.length;
+  busy = true; run.checking = true; renderAll();
+  try {
+    const rot = [run.result.opts.map(o => o.final)];
+    for (let s = 1; s < n; s++) {
+      const r = await dScore(Object.assign({}, f, { options: f.options.map((_, k) => f.options[(k + s) % n]) }));
+      rot.push(f.options.map((_, i) => r.opts[(i - s + n) % n].final));      // back to the original order of options
+    }
+    const blank = await dScore(Object.assign({}, f, { question: '—', options: f.options.map(() => '—') }));
+    run.check = { rot, bias: blank.opts.map(o => o.final) };
+  } catch (e) { run.checkError = e.message; }
+  busy = false; run.checking = false; saveDb(); renderAll();
+}
+function dChanges(prev, cur) {
+  if (!prev) return [];
+  const out = [], same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  if (prev.instruction !== cur.instruction) out.push('инструкция');
+  if (prev.question !== cur.question) out.push('вопрос');
+  if (!same(prev.options, cur.options)) out.push(same(prev.options.slice().sort(), cur.options.slice().sort()) ? 'порядок вариантов' : 'варианты');
+  if (prev.labels !== cur.labels) out.push('метки');
+  if (prev.prefix !== cur.prefix) out.push('начало ответа');
+  if (prev.template !== cur.template || prev.line !== cur.line) out.push('шаблон');
+  return out;
+}
+let dStage = 'final', dPainters = [];
+const D_STAGES = [['dict', 'Словарь', 'один токен'], ['sum', 'Все написания', 'сумма'], ['final', 'Итог', 'до 100%']];
+function renderDecision(box, c) {
+  box.innerHTML = ''; dPainters = [];
+  const th = h('div', { class: 'thread' });
+  if (!c.runs.length) th.append(h('div', { class: 'empty', style: 'margin-top:2vh' },
+    h('h1', null, 'Решение за один проход'),
+    h('p', null, 'Модель не пишет ответ словами. Она читает вопрос с вариантами, а мы смотрим, какую метку она собиралась назвать следующей, и с какой вероятностью.'),
+    h('ol', { class: 'how' },
+      h('li', null, h('b', null, 'Соберите запрос'), 'Инструкция, вопрос и варианты в форме внизу. Уже подставлен пример.'),
+      h('li', null, h('b', null, 'Запустите'), 'Один проход модели: вероятности меток видны сразу, по этапам.'),
+      h('li', null, h('b', null, 'Меняйте и сравнивайте'), 'Поправьте слово или порядок вариантов и запустите снова: карточка покажет сдвиг.'))));
+  c.runs.forEach((run, k) => th.append(renderRun(c, run, k)));
+  box.append(th);
+  dPaint();
+  box.scrollTop = box.scrollHeight;
+}
+const dPaint = () => dPainters.forEach(fn => fn());
+function renderRun(c, run, k) {
+  const f = run.form, r = run.result, prev = k > 0 ? c.runs[k - 1] : null;
+  const el = h('div', { class: 'run', 'data-run': run.id });
+  const head = h('div', { class: 'mrow' },
+    h('span', { class: 'who' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), 'Прогон ' + (k + 1)),
+    r ? h('span', null, r.model.split('/').pop()) : null);
+  const ch = dChanges(prev && prev.form, f);
+  if (ch.length) head.append(h('span', { class: 'badge', title: 'Что отличается от предыдущего прогона' }, 'изменено: ' + ch.join(', ')));
+  el.append(head, h('div', { class: 'rq' }, f.question));
+  if (run.status === 'run') { el.append(h('div', { class: 'rwait' }, 'считаю…')); return el; }
+  if (run.status === 'error') { el.append(h('div', { class: 'errBox' }, run.error), dFoot(c, run)); return el; }
+
+  const win = r.opts.reduce((a, o, i) => o.final > r.opts[a].final ? i : a, 0), w = r.opts[win];
+  const weak = r.inside < 0.5, tone = weak ? 'low' : w.final >= 0.9 ? 'ok' : 'mid';
+  el.append(h('div', { class: 'verdict' },
+    h('span', { class: 'tag ' + tone }, weak ? 'Ответ ненадёжен' : w.final >= 0.9 ? 'Уверенный ответ' : 'Есть сомнения'),
+    h('b', { class: 'ans' }, `${w.label}. ${f.options[win]}`), ` — ${pct(w.final)}.`,
+    weak ? ` На все варианты вместе пришлось лишь ${pct(r.inside)} вероятности: чаще модель хотела сказать что-то другое.` : ''));
+
+  const bar = h('div', { class: 'stages rstages' }), text = h('div', { class: 'rtext' }), rows = h('div', { class: 'drows' }), others = h('div', { class: 'others' });
+  const btns = D_STAGES.map(([key, name, sub]) => {
+    const b = h('button', { class: 'stg', onclick: () => { dStage = key; dPaint(); } }, h('b', null, name), h('i', null, sub));
+    bar.append(b); return b;
+  });
+  const rowEls = r.opts.map((o, i) => {
+    const row = h('div', { class: 'drow' + (i === win ? ' win' : ''), title: o.toks.length ? 'Засчитанные токены: ' + o.toks.map(t => `«${vis(t.t)}» ${pct(t.p)}`).join(', ') : 'Ни одно написание метки не является отдельным токеном' },
+      h('span', { class: 'lb' }, o.label), h('span', { class: 'tx' }, f.options[i]), h('span', { class: 'bar' }, h('i')), h('span', { class: 'pp' }, h('b'), h('i')));
+    rows.append(row); return row;
+  });
+  const restRow = h('div', { class: 'drow rest' }, h('span', { class: 'lb' }, '…'), h('span', { class: 'tx' }), h('span', { class: 'bar' }, h('i')), h('span', { class: 'pp' }, h('b'), h('i')));
+  rows.append(restRow);
+  // the same option in the previous run, found by its text: the place may have changed
+  const before = prev && prev.result ? f.options.map(o => { const j = prev.form.options.indexOf(o); return j < 0 ? null : prev.result.opts[j]; }) : null;
+  const val = (o, key) => key === 'dict' ? o.one : key === 'sum' ? o.mass : o.final;
+  const delta = (el2, d) => {
+    if (d == null) { el2.textContent = ''; return; }
+    const x = d * 100, zero = Math.abs(x) < 0.05;
+    el2.textContent = zero ? '(0)' : `(${x > 0 ? '+' : '−'}${Math.abs(x).toFixed(1)})`; el2.className = zero ? '' : x > 0 ? 'up' : 'dn';
+  };
+  dPainters.push(() => {
+    const key = dStage, vals = r.opts.map(o => val(o, key)), rest = key === 'final' ? 0 : Math.max(0, 1 - vals.reduce((a, b) => a + b, 0));
+    const max = Math.max(...vals, rest, 1e-9);
+    btns.forEach((b, i) => b.classList.toggle('on', D_STAGES[i][0] === key));
+    rowEls.forEach((row, i) => {
+      row.querySelector('.bar i').style.width = (vals[i] / max * 100).toFixed(1) + '%';
+      row.querySelector('.pp b').textContent = pct(vals[i]);
+      delta(row.querySelector('.pp i'), before && before[i] ? vals[i] - val(before[i], key) : null);
+    });
+    restRow.hidden = key === 'final';
+    restRow.querySelector('.tx').textContent = key === 'dict' ? 'все остальные токены словаря' : 'мимо вариантов';
+    restRow.querySelector('.bar i').style.width = (rest / max * 100).toFixed(1) + '%';
+    restRow.querySelector('.pp b').textContent = pct(rest);
+    const skip = r.skipped.length ? ` Перед меткой модель сначала поставила ${r.skipped.map(s => `«${vis(s.t)}»`).join(' и ')}: позиция ответа сдвинута на этот токен.` : '';
+    text.innerHTML = '';
+    const words = h('div'); text.append(words);
+    if (key === 'dict') words.append(h('b', null, 'Словарь. '), `В позиции ответа модель оценила все ${fmtN(r.vocab)} токенов. Здесь вероятность самого частого написания каждой метки.` + skip);
+    if (key === 'sum') words.append(h('b', null, 'Все написания. '), `Одну метку можно записать разными токенами: «1», « 1», «1.». Они сложены. На варианты вместе пришлось ${pct(r.inside)}, мимо ушло ${pct(1 - r.inside)}.`);
+    if (key === 'final') words.append(h('b', null, 'Итог. '), 'Всё, что не метка, отброшено, а вероятности вариантов пересчитаны так, чтобы давать 100%.' + (r.inside < 0.5 ? ' Осторожно: отброшена большая часть распределения.' : ''));
+    text.append(h('div', { class: 'fx' }, key === 'dict' ? 'p(токен) = softmax(z)' : key === 'sum' ? 'P(k) = Σ p(написания метки k)' : 'P(k) → P(k) / Σ P(j)'));
+    others.hidden = key === 'final' || !r.other.length;
+  });
+  others.append('Что ещё модель хотела сказать: ', ...r.other.flatMap((t, i) => [i ? ', ' : '', h('code', null, vis(t.t)), ' ' + pct(t.p)]));
+  el.append(bar, text, rows, others);
+
+  if (run.check) el.append(dCheckView(run));
+  if (run.checkError) el.append(h('div', { class: 'errBox' }, 'Проверка не удалась: ' + run.checkError));
+  el.append(h('details', { class: 'raw' }, h('summary', null, 'Точный промпт: что увидела модель'), h('pre', null, r.prompt)));
+  el.append(dFoot(c, run));
+  return el;
+}
+function dCheckView(run) {
+  const f = run.form, r = run.result, { rot, bias } = run.check, n = f.options.length;
+  const avg = f.options.map((_, i) => rot.reduce((s, row) => s + row[i], 0) / rot.length);
+  const fix = r.opts.map((o, i) => o.final / Math.max(bias[i], 1e-6)), fixSum = fix.reduce((a, b) => a + b, 0);
+  const winners = rot.map(row => row.indexOf(Math.max(...row))), base = winners[0], held = winners.filter(x => x === base).length;
+  const lean = bias.indexOf(Math.max(...bias));
+  const cell = v => h('td', { style: `background:rgba(130,145,255,${(0.05 + 0.4 * v).toFixed(2)})` }, pct(v));
+  const table = h('table', null,
+    h('tr', null, h('th', null, 'Вариант'), rot.map((_, s) => h('th', { title: 'Вероятность варианта, когда он стоит на этом месте' }, `на ${s + 1}-м месте`)),
+      h('th', null, 'в среднем'), h('th', { title: 'Что получает эта метка, когда вопрос и варианты пусты' }, 'метка сама'), h('th', { title: 'Итог, делённый на смещение метки и пересчитанный до 100%' }, 'с поправкой')),
+    f.options.map((o, i) => h('tr', null, h('td', { class: 'nm' }, `${r.opts[i].label}. ${o}`),
+      rot.map((_, pos) => cell(rot[(i - pos + n) % n][i])), cell(avg[i]), cell(bias[i]), cell(fix[i] / fixSum))));
+  return h('div', { class: 'chk' },
+    h('div', { class: 'cap' }, 'Проверка устойчивости'),
+    h('p', null, held === rot.length ? `Победитель не зависит от порядка: «${f.options[base]}» выигрывает при всех ${rot.length} перестановках.`
+      : `Ответ зависит от порядка: «${f.options[base]}» выигрывает только при ${held} из ${rot.length} перестановок.`,
+      ` Без содержания модель сама тянется к метке «${r.opts[lean].label}» (${pct(bias[lean])}).`),
+    h('div', { class: 'scroll' }, table));
+}
+function dFoot(c, run) {
+  const r = run.result, stats = h('div', { class: 'mstats' }), acts = h('div', { class: 'macts' });
+  if (r) {
+    stats.append(h('span', null, h('b', null, r.seconds.toFixed(2)), ' с'), h('span', null, h('b', null, r.promptTokens), ' ток. в промпте'),
+      h('span', { title: 'Как выбор из стольких равных вариантов по всему словарю' }, 'неопределённость ', h('b', null, '≈ ' + Math.pow(2, r.H).toFixed(1))));
+    acts.append(h('button', { disabled: busy || !!run.check, title: `Ещё ${run.form.options.length} проходов: каждый вариант побывает на каждом месте, плюс проход без содержания`, onclick: () => dCheck(run) },
+      run.checking ? 'проверяю…' : run.check ? '✓ Проверено' : 'Проверить устойчивость'));
+  }
+  acts.append(h('button', { disabled: busy, title: 'Скопировать этот запрос в форму внизу', onclick: () => { c.form = JSON.parse(JSON.stringify(run.form)); saveDb(); renderDForm(); $('#dform').scrollIntoView({ block: 'end' }); } }, 'Взять за основу'));
+  return h('div', { class: 'mfoot' }, stats, acts);
+}
+// The constructor. It is rebuilt only on structural changes, typing just updates the saved draft
+function renderDForm() {
+  const c = chat(), box = $('#dform'); box.innerHTML = '';
+  if (!isDecision(c)) return;
+  const f = c.form, labels = dLabels(f), keep = () => saveDb();
+  const field = (label, key, rows, mono) => {
+    const t = h('textarea', { rows, spellcheck: 'false', style: mono ? 'font:12.5px/1.5 var(--mono)' : null }); t.value = f[key];
+    t.addEventListener('input', () => { f[key] = t.value; keep(); go.disabled = busy || !isEx() || !dValid(f); });
+    return h('label', null, label, t);
+  };
+  const left = h('div', null, field('Инструкция', 'instruction', 2), field('Вопрос', 'question', 3)), right = h('div');
+  const list = h('div', { class: 'dopts' });
+  f.options.forEach((o, k) => {
+    const inp = h('input', { type: 'text', placeholder: 'текст варианта', spellcheck: 'false' }); inp.value = o;
+    inp.addEventListener('input', () => { f.options[k] = inp.value; keep(); go.disabled = busy || !isEx() || !dValid(f); });
+    const move = d => { const j = k + d; [f.options[k], f.options[j]] = [f.options[j], f.options[k]]; keep(); renderDForm(); };
+    list.append(h('div', { class: 'dopt' }, h('span', { class: 'lb' }, labels[k]), inp,
+      h('button', { title: 'Выше', 'aria-label': 'Выше', disabled: k === 0, onclick: () => move(-1) }, '↑'),
+      h('button', { title: 'Ниже', 'aria-label': 'Ниже', disabled: k === f.options.length - 1, onclick: () => move(1) }, '↓'),
+      h('button', { title: 'Удалить вариант', 'aria-label': 'Удалить вариант', disabled: f.options.length <= 2, onclick: () => { f.options.splice(k, 1); keep(); renderDForm(); } }, '✕')));
+  });
+  right.append(h('div', { class: 'dlabel' }, 'Варианты ответа'), list);
+  const body = h('div', { class: 'dbody', hidden: !!f.min }, h('div', { class: 'dgrid' }, left, right));
+  box.append(body);
+  if (f.adv) body.append(field('Шаблон сообщения: {инструкция}, {вопрос}, {варианты}', 'template', 6, true), field('Строка варианта: {метка}, {текст}', 'line', 1, true));
+  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Метки вариантов' }, Object.entries(D_LABELS).map(([key, L]) =>
+    h('button', { class: f.labels === key ? 'on' : '', onclick: () => {
+      if (f.instruction === dInstr(f.labels)) f.instruction = dInstr(key);    // keep the default wording in step with the labels
+      f.labels = key; keep(); renderDForm();
+    } }, L.name)));
+  const pre = h('input', { type: 'text', spellcheck: 'false', title: 'Этими словами начинается ответ модели: сразу после них должна идти метка' }); pre.value = f.prefix;
+  pre.addEventListener('input', () => { f.prefix = pre.value; keep(); });
+  const go = h('button', { class: 'drun', disabled: busy || !isEx() || !dValid(f), title: 'Один проход модели. Ctrl+Enter', onclick: dRun }, busy ? 'Считаю…' : 'Запустить');
+  right.append(h('button', { class: 'dadd', disabled: f.options.length >= 12, onclick: () => { f.options.push(''); keep(); renderDForm(); const all = box.querySelectorAll('.dopt input'); all[all.length - 1].focus(); } }, '+ вариант'));
+  box.append(h('div', { class: 'dbar' },
+    f.min ? h('span', { class: 'dsum' }, f.question || 'вопрос не задан') : null,
+    h('button', { class: 'dadd', hidden: true, disabled: f.options.length >= 12, onclick: () => { f.options.push(''); keep(); renderDForm(); const all = box.querySelectorAll('.dopt input'); all[all.length - 1].focus(); } }, '+ вариант'),
+    f.min ? null : h('span', { class: 'pre' }, 'Метки', seg), f.min ? null : h('label', { class: 'pre' }, 'Начало ответа', pre),
+    f.min ? null : h('button', { class: 'link', onclick: () => { f.adv = !f.adv; keep(); renderDForm(); } }, f.adv ? 'скрыть шаблон' : 'шаблон…'),
+    h('button', { class: 'link', title: 'Свернуть или развернуть форму, чтобы освободить место для ленты', onclick: () => { f.min = !f.min; keep(); renderDForm(); } }, f.min ? 'развернуть ▴' : 'свернуть ▾'), go));
+  if (!isEx()) box.append(h('div', { class: 'dnote' }, 'Этот режим работает только со своим сервером: ему нужны вероятности любых токенов, а не первых кандидатов. Выберите в настройках пресет «Свой сервер».'));
+  box.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); dRun(); } };
+}
 
 /* ---------- settings drawer ---------- */
 function syncLabels() {
@@ -1470,6 +1797,7 @@ $('#sendBtn').addEventListener('click', () => {
   const v = input.value; input.value = ''; autosize(); send(v);
 });
 $('#newChat').addEventListener('click', () => { if (!busy) { newChat(); $('#app').classList.remove('sideOpen'); input.focus(); } });
+$('#newDecision').addEventListener('click', () => { if (!busy) { newDecision(); $('#app').classList.remove('sideOpen'); } });
 $('#burger').addEventListener('click', () => $('#app').classList.toggle('sideOpen'));
 $('#exportBtn').addEventListener('click', () => {
   const c = chat(); if (!c) return;
@@ -1484,6 +1812,7 @@ hotRGB = HOT();
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { hotRGB = HOT(); renderHeader(); renderMessages(); });
 // reset generation flags left from a closed tab
 for (const c of Object.values(db.chats)) for (const n of Object.values(c.nodes)) if (n.status === 'gen') { n.status = 'done'; n.stopped = true; }
+for (const c of Object.values(db.chats)) for (const r of c.runs || []) { if (r.status === 'run') { r.status = 'error'; r.error = 'Прогон прерван закрытием страницы.'; } r.checking = false; }
 if (!db.current || !db.chats[db.current]) { if (db.order.length) db.current = db.order[0]; else newChat(); }
 syncLabels(); syncApiUI(); renderAll(); input.focus();
 (async () => {

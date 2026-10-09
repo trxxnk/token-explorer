@@ -320,6 +320,55 @@ class Engine:
         self.backend.load(model_id, models[model_id])
         return time.time() - t
 
+    def score(self, o):
+        """One forward pass, no sampling: the next-token distribution after the prompt, with the probability
+        and rank of every token the caller asked to watch (even deep in the tail). Yields a single result.
+
+        This is the "read the logits of the answer labels" way of making a decision with an ordinary LLM."""
+        b = self.backend
+        self.ensure_model(o.get("model"))
+        flat = lambda items: [i for x in (items or []) for i in ([int(x)] if isinstance(x, (int, float)) else b.encode(x))]
+        if o.get("prompt") is not None:
+            prompt_ids = b.encode(o["prompt"])
+        else:
+            prompt_ids = b.render(o.get("messages") or [], o.get("thinking", False))
+        if not prompt_ids:
+            raise ValueError("Пустой промпт")
+        ids = prompt_ids + flat(o.get("prefix"))
+        t0 = time.time()
+        logits, reused = b.prime(ids, [len(prompt_ids) - 1])
+        # Some tokenizers put a separate space token between "Answer:" and the label (Qwen splits off digits).
+        # With skip_space the position is moved past such tokens, and the caller is told what was skipped.
+        skipped = []
+        while o.get("skip_space") and len(skipped) < 2:
+            best = int(logits.argmax())
+            if b.label(best).strip(" ") != "":
+                break
+            e = np.exp(logits - logits.max())
+            skipped.append({"id": best, "t": b.label(best), "p": r4(float(e[best] / e.sum()))})
+            ids = ids + [best]
+            logits = b.step(best)
+        l = logits.astype(np.float32, copy=False)
+        raw = softmax(l)
+        nz = raw[raw > 0]
+        watch, seen = [], set()
+        for text in o.get("watch") or []:
+            toks = b.encode(text)
+            # only a text that is exactly one token can be read from this distribution
+            if len(toks) != 1 or toks[0] in seen:
+                continue
+            seen.add(toks[0])
+            i = toks[0]
+            watch.append({"text": text, "id": i, "t": b.label(i), "p": float(raw[i]), "logit": r4(l[i]), "rank": int((l > l[i]).sum()) + 1})
+        n_top = max(1, min(int(o.get("n_probs", 10)), l.shape[0] - 1))
+        yield {
+            "model": b.model_id, "vocab": int(l.shape[0]), "prompt_tokens": len(ids), "cached_tokens": reused,
+            "seconds": round(time.time() - t0, 3), "prompt": b.decode(ids), "skipped": skipped,
+            "H": r4(float(-(nz * np.log2(nz)).sum())),
+            "top": [{"id": i, "t": b.label(i), "p": r4(raw[i]), "logit": r4(l[i])} for i in top_sorted(l, n_top).tolist()],
+            "watch": watch,
+        }
+
     def generate(self, o, cancel=None):
         """Yields events: start, token..., done."""
         b = self.backend
@@ -443,12 +492,18 @@ class Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": {"message": "not found"}})
 
     def do_POST(self):
-        if self.path.split("?")[0] != "/generate":
+        path = self.path.split("?")[0]
+        if path not in ("/generate", "/score"):
             return self._json(404, {"error": {"message": "not found"}})
         try:
             o = json.loads(self.rfile.read(int(self.headers.get("Content-Length") or 0)) or b"{}")
         except Exception as e:
             return self._json(400, {"error": {"message": f"Некорректный JSON: {e}"}})
+        if path == "/score":
+            try:
+                return self._json(200, next(self.engine.run(lambda: self.engine.score(o))))
+            except Exception as e:
+                return self._json(400 if isinstance(e, ValueError) else 500, {"error": {"message": f"{type(e).__name__}: {e}"}})
         started, cancel = False, threading.Event()
         try:
             for ev in self.engine.stream(o, cancel):
