@@ -286,7 +286,7 @@ details.te-more pre{font:12px/1.5 var(--font-mono);color:var(--ink);white-space:
   .te-shell{grid-template-columns:1fr}
   .te-rail{display:none;position:absolute;top:0;bottom:0;left:0;width:min(var(--w-rail),86%);z-index:5;box-shadow:var(--shadow-drawer)}
   .te-shell.is-rail-open .te-rail{display:flex}
-  .te-shell.is-rail-open .te-scrim{display:block;position:absolute;inset:0;z-index:4;background:rgba(10,20,40,.45)}
+  .te-shell.is-rail-open .te-scrim{display:block;position:absolute;inset:0;z-index:4;background:var(--scrim)}
   .te-burger{display:block}
   .te-cols,.te-how{grid-template-columns:1fr}
   .te-top small{display:none}
