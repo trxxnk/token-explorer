@@ -1,0 +1,1834 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Explorer</title>
+<style>
+:root{
+  --bg:#eef1f5; --panel:#ffffff; --panel2:#e6eaf1; --line:#d5dbe5;
+  --ink:#18202e; --muted:#66718a; --accent:#3346d3; --accent-soft:rgba(51,70,211,.11);
+  --hot:224,82,20; --ok:#1f9d55; --err:#c53030; --warn:#a8660b;
+  --serif:Charter,"Iowan Old Style","Palatino Linotype",Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#141a24; --panel:#1b2230; --panel2:#232c3d; --line:#2e384b;
+  --ink:#e4e8f0; --muted:#8c97ad; --accent:#8291ff; --accent-soft:rgba(130,145,255,.16);
+  --hot:255,110,60; --warn:#e0a84a; --ok:#3fc27a;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+/* scrollbars in the colours of the theme, everywhere */
+:root{color-scheme:light dark}
+*{scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px;border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);border:3px solid transparent;background-clip:content-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:default;opacity:.5}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;width:100%}
+textarea{resize:vertical}
+
+#app{display:grid;grid-template-columns:256px minmax(0,1fr) auto;height:100%}
+.cap{font:600 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+/* sidebar */
+#side{background:var(--panel2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.brand{display:flex;align-items:center;gap:11px;padding:16px 16px 14px}
+.mark{display:flex;align-items:flex-end;gap:2px;width:20px;height:20px;flex:none}
+.mark i{flex:1;border-radius:2px;background:var(--accent)}
+.mark i:nth-child(1){height:100%}
+.mark i:nth-child(2){height:60%;opacity:.7}
+.mark i:nth-child(3){height:30%;opacity:.45}
+.brand b{display:block;font:600 16.5px/1.1 var(--serif);letter-spacing:.01em}
+.brand small{display:block;font:11.5px var(--sans);color:var(--muted);margin-top:3px}
+.newchat{margin:0 12px 14px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);text-align:left;font-weight:500}
+.newchat:hover{border-color:var(--accent);color:var(--accent)}
+#side .cap{padding:0 16px 6px}
+#chatList{flex:1;overflow:auto;padding:0 8px;display:flex;flex-direction:column;gap:2px}
+.chatItem{display:flex;align-items:center;border-radius:10px;border:1px solid transparent}
+.chatItem:hover{background:var(--accent-soft)}
+.chatItem.on{background:var(--panel);border-color:var(--line)}
+.chatItem button.t{flex:1;min-width:0;background:none;border:0;text-align:left;padding:7px 4px 7px 10px}
+.chatItem .ti{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.chatItem .me{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.chatItem button.x{background:none;border:0;color:var(--muted);padding:6px 9px;border-radius:6px;opacity:0}
+.chatItem:hover button.x,.chatItem button.x:focus-visible{opacity:1}
+.chatItem button.x:hover{color:var(--err)}
+.sideFoot{padding:10px 12px;border-top:1px solid var(--line)}
+.sideFoot button{width:100%;background:none;border:1px solid var(--line);border-radius:9px;padding:7px;color:var(--muted)}
+.sideFoot button:hover{color:var(--ink);border-color:var(--muted)}
+
+/* main */
+main{display:flex;flex-direction:column;min-width:0;min-height:0;container-type:inline-size}
+/* the middle column gets narrow when both side panels are open: drop the secondary labels first */
+@container (max-width:680px){header .cap,.modelChip small{display:none}}
+@container (max-width:520px){.seg button{padding:5px 7px}}
+header{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg)}
+.burger{display:none;background:none;border:0;font-size:18px;padding:4px 8px}
+.modelChip{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 12px;max-width:380px;min-width:0;cursor:pointer}
+.modelChip:hover{border-color:var(--muted)}
+.modelChip span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:500;min-width:3ch}
+.modelChip small{color:var(--muted);font-size:12px;white-space:nowrap;flex:none}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--ok)} .dot.err{background:var(--err)}
+.spacer{flex:1}
+header .cap{flex:none}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:2px}
+.seg button{background:none;border:0;padding:5px 10px;border-radius:8px;color:var(--muted);font-size:13px}
+.seg button:hover:not(.on){color:var(--ink)}
+.seg button.on{background:var(--accent);color:#fff}
+.seg button,.gear{white-space:nowrap}
+.seg,.gear{flex:none}
+.gear{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 11px}
+.gear.on{border-color:var(--accent);color:var(--accent)}
+.legend{display:flex;align-items:center;gap:8px;padding:6px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+.legend .bar{width:120px;height:8px;border-radius:4px;flex:none}
+
+#messages{flex:1;overflow:auto;padding:28px 16px 40px}
+.thread{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:30px}
+.msg.user{align-self:flex-end;max-width:82%;background:var(--accent-soft);border-radius:16px 16px 4px 16px;padding:10px 15px;white-space:pre-wrap;word-wrap:break-word;font-size:15px}
+.msg.assistant{font:16.5px/1.7 var(--serif)}
+.mrow{display:flex;align-items:center;gap:6px 10px;margin-bottom:8px;font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
+.who{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink)}
+.who .mark{width:13px;height:13px;gap:1.5px}
+.variants{display:inline-flex;align-items:center;gap:1px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:0 2px}
+.variants button{background:none;border:0;color:var(--muted);padding:1px 7px;font-size:15px;border-radius:6px}
+.variants button:hover:not(:disabled){color:var(--accent)}
+.badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:2px 9px;border:0;font:12.5px var(--sans)}
+.badge code{font:12px var(--mono)}
+.answer,.thinkBody{white-space:pre-wrap;word-wrap:break-word}
+.tok{border-radius:3px;cursor:pointer;transition:background-color .15s}
+.tok:hover,.tok.focus{outline:1.5px solid var(--accent);outline-offset:0}
+.tok.manual{background:var(--accent-soft)!important;box-shadow:inset 0 -2px 0 var(--accent)}
+.tok.np{cursor:help}
+.tok.sp{font:11px/1.5 var(--mono);color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:0 5px;margin:0 2px;white-space:nowrap;vertical-align:1px}
+.tok.flash{animation:flash 1.2s}
+@keyframes flash{0%,60%{outline:3px solid var(--accent)}}
+.lead{display:none}
+details.think{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 14px;margin:0 0 14px;color:var(--muted);font-size:14.5px;line-height:1.6}
+details.think summary{font:500 13px var(--sans);cursor:pointer;list-style:none}
+details.think[open] summary{margin-bottom:6px}
+details.think summary::-webkit-details-marker{display:none}
+details.think summary::before{content:"▸ ";}
+details.think[open] summary::before{content:"▾ ";}
+.caret{display:inline-block;width:8px;height:1.05em;background:var(--accent);vertical-align:text-bottom;margin-left:2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.mfoot{display:flex;align-items:center;gap:8px 14px;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);font:12.5px var(--sans);color:var(--muted);flex-wrap:wrap}
+.mstats{display:flex;flex-wrap:wrap;gap:4px 14px;font-variant-numeric:tabular-nums}
+.mstats b{color:var(--ink);font-weight:600}
+.macts{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+.macts button{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:4px 10px;color:var(--ink);font-size:12.5px}
+.macts button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.macts .done{align-self:center;padding:0 4px}
+.errBox{font:13px var(--sans);color:var(--err);background:rgba(197,48,48,.08);border-radius:10px;padding:9px 12px;margin-top:8px}
+.warn{max-width:760px;margin:0 auto 18px;font-size:13px;background:rgba(var(--hot),.1);border-radius:10px;padding:10px 12px}
+
+/* empty */
+.empty{max-width:700px;margin:5vh auto 0}
+.empty h1{font:600 38px/1.15 var(--serif);margin:0 0 12px;text-wrap:balance}
+.empty h1 .demo .tok{padding:0 2px;cursor:default}
+.empty > p{color:var(--muted);font-size:16px;margin:0;max-width:56ch}
+.need{display:flex;align-items:center;gap:12px;background:rgba(var(--hot),.1);border-radius:12px;padding:10px 14px;margin:0 0 22px;font-size:13.5px}
+.need button{flex:none;margin-left:auto;border:1px solid var(--line);background:var(--panel);border-radius:8px;padding:5px 11px}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:26px 0;padding:0;list-style:none;counter-reset:how}
+.how li{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px 15px 14px;font-size:13px;color:var(--muted);counter-increment:how}
+.how li::before{content:counter(how);display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font:600 12px var(--sans);margin-bottom:9px}
+.how li b{display:block;color:var(--ink);font-size:14px;margin-bottom:3px}
+.empty .cap{margin-bottom:9px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips button{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:7px 14px}
+.chips button:hover{border-color:var(--accent);color:var(--accent)}
+@media (max-width:700px){.how{grid-template-columns:1fr}}
+
+/* composer */
+.composer{padding:10px 16px 14px}
+.cbox{max-width:760px;margin:0 auto;display:flex;align-items:flex-end;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:8px 8px 8px 16px;box-shadow:0 2px 14px rgba(10,20,40,.08)}
+.cbox:focus-within{border-color:var(--accent)}
+.cbox textarea{border:0;padding:7px 0;resize:none;max-height:200px;background:transparent;font-size:15px}
+.cbox textarea:focus{outline:none}
+.send{flex:none;width:38px;height:38px;border-radius:12px;border:0;background:var(--accent);color:#fff;font-size:17px}
+.send:hover{filter:brightness(1.08)}
+.send.stop{background:var(--err)}
+.chint{max-width:760px;margin:7px auto 0;font-size:12px;color:var(--muted);padding:0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px}
+.chint kbd{font:11px var(--mono);border:1px solid var(--line);border-radius:5px;padding:0 5px;background:var(--panel)}
+.steps{display:inline-flex;align-items:center;gap:3px;margin-left:auto}
+.steps button{background:none;border:1px solid transparent;border-radius:12px;padding:1px 8px;color:var(--muted);font-size:12px}
+.steps button:hover{border-color:var(--line)}
+.steps button.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+
+/* decision mode */
+.newrow{display:flex;gap:6px;margin:0 12px 14px}
+.newrow .newchat{margin:0;flex:1;white-space:nowrap}
+.dmode header .seg,.dmode header .cap,.dmode .legend{display:none!important}
+.dform{max-width:760px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px 14px 12px;box-shadow:0 2px 14px rgba(10,20,40,.08);max-height:52vh;overflow:auto}
+.dform label,.dlabel{display:block;font-size:12px;color:var(--muted);margin-bottom:8px}
+.dlabel{margin-bottom:4px}
+.dform textarea,.dform input[type=text]{margin-top:3px;font-size:14px;background:var(--bg)}
+.dform textarea:focus,.dform input:focus{outline:none;border-color:var(--accent)}
+.dopts{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.dopt{display:flex;align-items:center;gap:6px}
+.lb{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:var(--accent-soft);color:var(--accent);font:600 12.5px var(--mono)}
+.dopt input{margin:0}
+.dopt button{flex:none;background:none;border:1px solid var(--line);border-radius:8px;width:28px;height:28px;color:var(--muted);padding:0}
+.dopt button:hover:not(:disabled){color:var(--ink);border-color:var(--muted)}
+.dbar{display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap;position:sticky;bottom:-12px;background:var(--panel);padding:8px 0 12px;margin-bottom:-12px}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@container (max-width:620px){.dgrid{grid-template-columns:1fr}}
+.dsum{flex:1 1 200px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:15px var(--serif)}
+.dopts + .dadd{margin-bottom:8px}
+.dadd{background:none;border:1px dashed var(--line);border-radius:8px;height:28px;padding:0 10px;color:var(--muted)}
+.dadd:hover:not(:disabled){color:var(--accent);border-color:var(--accent)}
+.dbar .pre{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}
+.dbar .seg{background:var(--bg)}
+.dbar .seg button{font:12px var(--mono);padding:3px 9px}
+.dbar .pre input{width:104px;margin:0;font:12.5px var(--mono);padding:4px 8px}
+.link{background:none;border:0;color:var(--accent);padding:0;font-size:12px}
+.link:hover{text-decoration:underline}
+.drun{margin-left:auto;background:var(--accent);color:#fff;border:0;border-radius:11px;padding:8px 18px;font-weight:600}
+.drun:hover:not(:disabled){filter:brightness(1.08)}
+.dnote{margin-top:10px;font-size:12.5px;background:rgba(var(--hot),.1);border-radius:10px;padding:8px 11px}
+.run{font:14px/1.5 var(--sans)}
+.rq{font:17px/1.45 var(--serif);margin:0 0 6px;white-space:pre-wrap}
+.rwait{color:var(--muted);font-size:13px}
+.run .verdict{margin:0 0 12px}
+.run .verdict .ans{color:var(--ink);font-weight:600}
+.rstages{max-width:420px}
+.rstages .stg{padding:5px 4px 6px}
+.rtext{margin:9px 0 10px;min-height:6.6em;color:var(--muted);font-size:12.5px;line-height:1.45;display:flex;flex-direction:column;justify-content:space-between;gap:6px}
+.rtext b{color:var(--ink);font-weight:600}
+.rtext .fx{align-self:flex-start;padding:4px 10px}
+.drows{display:flex;flex-direction:column;gap:2px}
+.drow{display:grid;grid-template-columns:26px minmax(0,1fr) minmax(90px,200px) 112px;gap:10px;align-items:center;padding:5px 8px;border-radius:10px}
+.drow.win{background:var(--panel)}
+.drow .tx{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.drow .bar{height:10px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.drow .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:5px;transition:width .9s cubic-bezier(.3,.7,.2,1)}
+.drow.win .bar i{background:var(--ink)}
+.drow .pp{display:flex;justify-content:flex-end;gap:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.drow .pp b{font-weight:600}
+.drow .pp i{font-style:normal;font-size:11px;color:var(--muted);width:50px;text-align:left}
+.drow .pp i.up{color:var(--ok)}
+.drow .pp i.dn{color:rgb(var(--hot))}
+.drow.rest .lb{background:none;color:var(--muted)}
+.drow.rest .tx{color:var(--muted);font-size:12.5px}
+.drow.rest .bar i{background:var(--muted);opacity:.6}
+.drow.rest .pp b{font-weight:400;color:var(--muted)}
+.others{font-size:12px;color:var(--muted);margin:6px 8px 0}
+.others code{font:12px var(--mono);color:var(--ink);background:var(--panel2);border-radius:5px;padding:0 5px}
+.chk{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px}
+.chk p{margin:5px 0 9px;font-size:13px}
+.chk .scroll{overflow-x:auto}
+.chk table{border-collapse:separate;border-spacing:2px;font-size:12.5px;font-variant-numeric:tabular-nums}
+.chk th{font-weight:500;color:var(--muted);font-size:11.5px;padding:2px 8px;text-align:right;white-space:nowrap}
+.chk th:first-child{text-align:left}
+.chk td{padding:4px 8px;border-radius:6px;text-align:right}
+.chk td.nm{text-align:left;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+details.raw{margin-top:12px;font-size:12.5px;color:var(--muted)}
+details.raw summary{cursor:pointer}
+details.raw pre{font:12px/1.5 var(--mono);color:var(--ink);white-space:pre-wrap;word-break:break-word;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0 0;max-height:260px;overflow:auto}
+
+/* popover: a compact card on hover, the full panel after a click */
+#pop{position:fixed;z-index:50;width:300px;max-width:calc(100vw - 16px);max-height:calc(100vh - 16px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 48px rgba(10,20,40,.26);padding:14px;font:13px/1.45 var(--sans)}
+#pop.full{width:468px}
+#pop[hidden]{display:none}
+.ph{display:flex;align-items:center;gap:8px}
+.ph .idx{color:var(--muted);font-size:11.5px}
+.ph code{font:600 15px var(--mono);background:var(--panel2);border-radius:7px;padding:3px 8px;max-width:190px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.ph .p{margin-left:auto;font:700 20px var(--sans);font-variant-numeric:tabular-nums}
+.pin{background:none;border:0;color:var(--muted);padding:2px 4px;border-radius:6px}
+.pin:hover{background:var(--panel2)}
+.verdict{margin:10px 0 2px;color:var(--muted)}
+.tag{display:inline-block;font-weight:600;font-size:12px;border-radius:20px;padding:2px 9px;margin-right:6px}
+.tag.ok{color:var(--ok);background:rgba(31,157,85,.14)}
+.tag.mid{color:var(--warn);background:rgba(183,121,31,.16)}
+.tag.low{color:rgb(var(--hot));background:rgba(var(--hot),.13)}
+.tag.manual{color:var(--accent);background:var(--accent-soft)}
+.tag.none{color:var(--muted);background:var(--panel2)}
+.sect{font:600 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 7px;display:flex;align-items:center;justify-content:space-between}
+.play{background:none;border:0;color:var(--accent);font:12px var(--sans);text-transform:none;letter-spacing:0;padding:0}
+.play:hover{text-decoration:underline}
+.stages{display:flex;align-items:stretch}
+.stg{flex:1;min-width:0;background:var(--panel2);border:1.5px solid transparent;border-radius:10px;padding:6px 2px 7px;text-align:center;line-height:1.2;position:relative;transition:background-color .15s,border-color .15s}
+.stg + .stg{margin-left:11px}
+.stg + .stg::before{content:"›";position:absolute;left:-10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+.stg b{display:block;font-size:12px}
+.stg i{display:block;font-style:normal;font-size:10.5px;color:var(--muted)}
+.stg span{display:block;font:600 12px var(--sans);font-variant-numeric:tabular-nums;margin-top:4px;white-space:nowrap}
+.stg.off b,.stg.off span{opacity:.5}
+.stg:hover{border-color:var(--line)}
+.stg.on{border-color:var(--accent);background:var(--accent-soft)}
+.stg.on b{color:var(--accent)}
+.stgText{margin:9px 0 8px;height:128px;display:flex;flex-direction:column;justify-content:space-between;gap:6px;overflow:hidden;color:var(--muted);font-size:12.5px;line-height:1.4}
+.stgWords b{color:var(--ink);font-weight:600}
+.fx{flex:none;background:var(--panel2);border-radius:9px;padding:7px 10px;font:12px/1.5 var(--mono);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fx sub,.fx sup{font-size:.78em;line-height:0}
+.fx .ex{font-family:var(--sans);color:var(--muted);overflow:hidden;text-overflow:ellipsis}
+.fx .ex code{font:12px var(--mono);color:var(--ink)}
+.acap{display:flex;justify-content:space-between;color:var(--muted);font-size:10.5px;padding:0 24px 3px 6px}
+.alts{display:flex;flex-direction:column;gap:1px;margin-top:10px}
+.alts.rk{overflow-y:auto;overflow-x:hidden;margin-top:0;scrollbar-gutter:stable;margin-right:-8px}
+.alts > *{flex:none}
+.stgText + .alts{margin-top:0}
+.alt{display:grid;grid-template-columns:18px minmax(0,1fr) 84px 46px;align-items:center;gap:8px;background:none;border:0;border-radius:8px;padding:4px 6px;text-align:left;width:100%}
+#pop.full .alt{grid-template-columns:18px minmax(0,1fr) 110px 62px 12px;position:relative}
+#pop.full .rk .alt{grid-template-columns:24px 16px minmax(0,1fr) 96px 104px 12px;gap:7px}
+.alt .dl{font:600 10.5px var(--sans);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--muted)}
+.alt .dl.up{color:var(--ok)}
+.alt .dl.dn{color:rgb(var(--hot))}
+.alt.chosen .go{opacity:1;color:var(--ink)}
+.alt[hidden]{display:none}
+.alt .go{color:var(--accent);opacity:0;transition:opacity .12s}
+button.alt:hover:not(:disabled){background:var(--accent-soft)}
+button.alt:hover:not(:disabled) .go{opacity:1}
+.alt.chosen{background:var(--panel2)}
+button.alt:disabled{opacity:1}
+button.alt:disabled:not(.chosen){cursor:wait}
+.alt .r{color:var(--muted);font-size:11.5px;text-align:right}
+.alt code{font:13px var(--mono);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.alt .bar{height:8px;background:var(--panel2);border-radius:4px;overflow:hidden}
+.alt.chosen .bar{background:var(--line)}
+.alt .bar i{display:block;height:100%;width:0;background:var(--accent);border-radius:4px;transition:width 1s cubic-bezier(.3,.7,.2,1)}
+.alt.chosen .bar i{background:var(--ink)}
+.alt .pp{display:flex;justify-content:flex-end;gap:5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.alt .pp b{font-weight:400}
+.alt .pp i{font-style:normal;font-size:11px;color:var(--muted);width:50px;text-align:left}
+.alt .pp i.up{color:var(--ok)}
+.alt .pp i.dn{color:rgb(var(--hot))}
+button.alt.rest{cursor:pointer}
+button.alt.rest:hover code{color:var(--accent)}
+.alt.cut code{text-decoration:line-through}
+.alt.cut code,.alt.cut .r{opacity:.5}
+.alt.cut .pp{font-size:11px;color:var(--muted)}
+.alt.out .pp b{color:rgb(var(--hot));font-weight:600}
+.alt.rest code{font:12px var(--sans);color:var(--muted)}
+.alt.rest .bar i{background:var(--muted);opacity:.6}
+.alt.rest .pp{color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.tile{background:var(--panel2);border-radius:10px;padding:5px 9px;cursor:help}
+.tile small{display:block;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile b{display:block;font:600 16px var(--sans);font-variant-numeric:tabular-nums}
+.tile i{display:block;font-style:normal;color:var(--muted);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.custom{display:flex;gap:6px;margin-top:12px}
+.custom input{font-family:var(--mono);font-size:13px}
+.custom button,.reroll{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:6px 10px}
+.reroll{width:100%;margin-top:6px}
+.custom button:hover:not(:disabled),.reroll:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.phint{margin-top:9px;color:var(--muted);font-size:11.5px}
+
+/* settings panel */
+#drawer{width:344px;background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+#drawer[hidden]{display:none}
+.dh{display:flex;align-items:center;padding:13px 18px;border-bottom:1px solid var(--line)}
+.dh h2{font:600 16.5px var(--serif);margin:0;flex:1}
+.dh button{background:none;border:0;font-size:15px;color:var(--muted);border-radius:6px;padding:2px 6px}
+.dh button:hover{background:var(--panel2)}
+.db{overflow:auto;padding:0 18px 30px}
+.db section{padding:16px 0 8px;border-bottom:1px solid var(--line)}
+.db section:last-child{border-bottom:0}
+.db h3{font:600 11px var(--sans);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.db label{display:block;margin-bottom:11px;color:var(--muted);font-size:12.5px}
+.db label > input,.db label > select,.db label > textarea,.db label > .row{margin-top:4px;color:var(--ink)}
+.db input:focus,.db select:focus,.db textarea:focus{outline:none;border-color:var(--accent)}
+.db .rng span{display:flex;justify-content:space-between}
+.db .rng b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.db label.off{opacity:.45}
+.db input[type=range]{padding:0;border:0;accent-color:var(--accent)}
+.db .chk{display:flex;gap:8px;align-items:flex-start;color:var(--ink);font-size:13px}
+.db .chk input{width:auto;margin-top:3px;accent-color:var(--accent)}
+.db .chk small{display:block;color:var(--muted);margin-top:1px}
+.row{display:flex;gap:6px}
+.row button{flex:none;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:0 11px}
+.presets{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.presets button{display:block;text-align:left;border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:7px 9px;min-width:0}
+.presets button b{display:block;font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.presets button small{display:block;color:var(--muted);font-size:11px}
+.presets button:hover{border-color:var(--muted)}
+.presets button.on{border-color:var(--accent);background:var(--accent-soft)}
+.presets button.on b{color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin:2px 0 0;line-height:1.45}
+.hint.err{color:var(--err)} .hint.ok{color:var(--ok)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid2 .wide{grid-column:1 / -1}
+
+@media (max-width:1100px){
+  #drawer{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:100vw;z-index:40;box-shadow:-10px 0 40px rgba(10,20,40,.15)}
+}
+@media (max-width:820px){
+  #app{grid-template-columns:1fr}
+  #side{position:fixed;top:0;bottom:0;left:0;width:260px;z-index:45;transform:translateX(-100%);transition:transform .2s}
+  #app.sideOpen #side{transform:none}
+  .burger{display:block}
+  .seg button{padding:5px 7px}
+  header .cap{display:none}
+  .modelChip{max-width:150px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span><div><b>Token Explorer</b><small>что модель могла сказать иначе</small></div></div>
+    <div class="newrow">
+      <button class="newchat" id="newChat" title="Обычный разговор с моделью">+ Чат</button>
+      <button class="newchat" id="newDecision" title="Вопрос с вариантами: модель выбирает ответ за один проход">+ Решение</button>
+    </div>
+    <div class="cap">Чаты</div>
+    <div id="chatList"></div>
+    <div class="sideFoot"><button id="exportBtn" title="Сохранить открытый чат со всеми ветками в файл JSON">Сохранить чат в файл</button></div>
+  </aside>
+
+  <main>
+    <header>
+      <button class="burger" id="burger" aria-label="Чаты">☰</button>
+      <div class="modelChip" id="modelChip" title="Сервер и модель. Клик открывает настройки"><i class="dot" id="connDot"></i><span id="modelName">нет подключения</span><small id="apiName"></small></div>
+      <div class="spacer"></div>
+      <span class="cap">Подсветка</span>
+      <div class="seg" id="heatSeg" role="group" aria-label="Тепловая карта">
+        <button data-heat="off">Нет</button>
+        <button data-heat="uncertain">Сомнения</button>
+        <button data-heat="gradient">Градиент</button>
+        <button data-heat="entropy">Энтропия</button>
+      </div>
+      <button class="gear" id="openDrawer">Настройки</button>
+    </header>
+    <div class="legend" id="legend"></div>
+    <div id="messages"></div>
+    <div class="composer">
+      <div class="cbox">
+        <textarea id="input" rows="1" placeholder="Спросите модель о чём-нибудь…"></textarea>
+        <button class="send" id="sendBtn" aria-label="Отправить">↑</button>
+      </div>
+      <div class="dform" id="dform" hidden></div>
+      <div class="chint"><span id="hintText"></span><span class="steps" id="steps" title="Сколько токенов генерировать за один раз. Tab — следующий шаг"></span></div>
+    </div>
+  </main>
+
+<aside id="drawer">
+  <div class="dh"><h2>Настройки</h2><button id="closeDrawer" aria-label="Скрыть настройки" title="Скрыть панель">✕</button></div>
+  <div class="db">
+    <section>
+      <h3>Подключение</h3>
+      <div class="presets">
+        <button data-preset="lms"><b>LM Studio</b><small>порт 1234</small></button>
+        <button data-preset="llama"><b>llama.cpp</b><small>порт 8080</small></button>
+        <button data-preset="te"><b>Свой сервер</b><small>порт 8090</small></button>
+      </div>
+      <label>Адрес сервера<input data-k="baseUrl" type="text" spellcheck="false"></label>
+      <label>Протокол
+        <select data-k="api">
+          <option value="responses">LM Studio, /v1/responses</option>
+          <option value="chat">LM Studio, /v1/chat/completions</option>
+          <option value="openai">OpenAI-совместимый, /v1/completions</option>
+          <option value="llamacpp">llama.cpp нативный, /completion</option>
+          <option value="explorer">Свой сервер (server.py), /generate</option>
+        </select>
+      </label>
+      <p class="hint" id="apiHint" style="margin:-4px 0 10px"></p>
+      <label>Модель
+        <div class="row"><select id="modelSel"></select><button id="refreshModels" title="Обновить список">↻</button></div>
+      </label>
+      <p class="hint" id="connHint"></p>
+    </section>
+    <section>
+      <h3>Диалог</h3>
+      <label>Шаблон
+        <select data-k="template">
+          <option value="chatml">ChatML: Qwen, Bonsai и большинство моделей</option>
+          <option value="llama3">Llama 3</option>
+          <option value="gemma">Gemma</option>
+          <option value="raw">Простой текст «User / Assistant»</option>
+        </select>
+      </label>
+      <p class="hint" id="tplHint" style="margin:-4px 0 10px" hidden>В этом протоколе шаблон применяет сам сервер, настройка не используется.</p>
+      <label>Системный промпт<textarea data-k="system" rows="3"></textarea></label>
+      <label>Размышления перед ответом
+        <select data-k="thinking">
+          <option value="auto">Разрешить, как решит модель</option>
+          <option value="off">Выключить, сразу отвечать</option>
+        </select>
+      </label>
+    </section>
+    <section>
+      <h3>Сэмплинг</h3>
+      <label class="rng"><span>Temperature <b data-v="temperature"></b></span><input type="range" data-k="temperature" min="0" max="2" step="0.05"></label>
+      <label class="rng"><span>Top-K <b data-v="top_k"></b></span><input type="range" data-k="top_k" min="0" max="100" step="1"></label>
+      <label class="rng"><span>Top-P <b data-v="top_p"></b></span><input type="range" data-k="top_p" min="0" max="1" step="0.01"></label>
+      <label class="rng"><span>Min-P <b data-v="min_p"></b></span><input type="range" data-k="min_p" min="0" max="0.5" step="0.01"></label>
+      <label class="rng"><span>Штраф за повторы <b data-v="repeat_penalty"></b></span><input type="range" data-k="repeat_penalty" min="1" max="1.5" step="0.01"></label>
+      <p class="hint" id="sampHint" style="margin:-2px 0 10px" hidden>/v1/responses учитывает только Temperature и Top-P. Top-K, Min-P, штраф за повторы и seed сервер игнорирует: для них выберите протокол /v1/chat/completions.</p>
+      <div class="grid2">
+        <label>Лимит ответа, ток.<input type="number" data-k="max_tokens" min="16" max="8192"></label>
+        <label>Seed (−1 — случайный)<input type="number" data-k="seed"></label>
+        <label class="wide" title="Модель генерирует столько токенов и ждёт; Tab — следующий шаг">Шаг генерации, ток. (0 — весь ответ сразу)<input type="number" data-k="tab_tokens" min="0" max="512"></label>
+      </div>
+    </section>
+    <section>
+      <h3>Отображение</h3>
+      <label class="rng"><span>Кандидатов на каждый токен <b data-v="n_probs"></b></span><input type="range" data-k="n_probs" min="2" max="20" step="1"></label>
+      <label class="rng"><span>Порог подсветки «сомнения» <b data-v="threshold"></b></span><input type="range" data-k="threshold" min="0.1" max="0.99" step="0.01"></label>
+      <label class="chk"><input type="checkbox" data-k="showSpecial"><span>Показывать служебные токены<small>&lt;/think&gt;, &lt;|im_end|&gt; и подобные. Заменив такой токен другим кандидатом, можно заставить модель рассуждать или отвечать дальше.</small></span></label>
+      <label class="chk"><input type="checkbox" data-k="postSampling"><span>Вероятности после сэмплеров<small>Только для нативного llama.cpp. Обрезанное top-k/top-p распределение перенормируется, поэтому уверенность выглядит выше реальной.</small></span></label>
+    </section>
+  </div>
+</aside>
+</div>
+
+<div id="pop" hidden></div>
+
+
+<script>
+"use strict";
+/* ---------- utils ---------- */
+const $ = s => document.querySelector(s);
+const uid = () => Math.random().toString(36).slice(2, 10);
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'style') el.style.cssText = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid == null || kid === false) continue;
+    el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  }
+  return el;
+}
+const store = {
+  load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+};
+const pct = p => {
+  if (p == null) return '—';
+  const x = p * 100;
+  if (x > 0 && x < 0.1) return '<0.1%';
+  return (x >= 10 ? x.toFixed(0) : x.toFixed(1)) + '%';
+};
+const vis = s => (s || '').replace(/ /g, '·').replace(/\n/g, '↵').replace(/\t/g, '⇥') || '∅';
+const lp2p = lp => (lp == null || !isFinite(lp)) ? 0 : Math.exp(lp);
+const HOT_RE = /^<\|[^|>]*\|>$|^<\/?(start_of_turn|end_of_turn|eos|bos|s)>$/;
+
+/* ---------- state ---------- */
+const DEFAULTS = {
+  baseUrl: 'http://localhost:1234', api: 'responses', model: '', template: 'chatml',
+  system: 'Ты полезный ассистент. Отвечай по делу.', thinking: 'auto',
+  temperature: 0.7, top_k: 40, top_p: 0.95, min_p: 0.05, repeat_penalty: 1.05,
+  seed: -1, max_tokens: 1024, n_probs: 10, heat: 'uncertain', threshold: 0.6,
+  showSpecial: true, postSampling: false, tab_tokens: 0, panel: true
+};
+const firstRun = store.load('te.settings', null) === null;
+let settings = Object.assign({}, DEFAULTS, store.load('te.settings', {}));
+// v2: LM Studio returns logprobs: null on /v1/completions, move saved LM Studio setups to /v1/responses
+if (!settings.v) { if (settings.api === 'openai' && /:1234\b/.test(settings.baseUrl)) settings.api = 'responses'; settings.v = 2; store.save('te.settings', settings); }
+// v3: service tokens became clickable chips and are shown by default
+if (settings.v < 3) { settings.showSpecial = true; settings.v = 3; store.save('te.settings', settings); }
+// v4: step generation is off unless asked for; it now applies to every generation, not only to Tab
+if (settings.v < 4) { settings.tab_tokens = 0; settings.v = 4; store.save('te.settings', settings); }
+const isLMS = () => settings.api === 'responses' || settings.api === 'chat';
+let genLimit = null;                                   // step size while a request is running
+const stepSize = () => Math.max(0, Math.floor(+settings.tab_tokens || 0));
+const maxTok = () => genLimit || +settings.max_tokens;
+const isEx = () => settings.api === 'explorer';
+// tokens from our own server carry ids; text alone is ambiguous (fragments of one character all look like "�")
+const same = (a, t) => a.id != null && t.id != null ? a.id === t.id : a.t === t.t;
+const CUT = { top_k: 'top-k', top_p: 'top-p', min_p: 'min-p' };
+let db = store.load('te.db', { chats: {}, order: [], current: null });
+let busy = false, ctrl = null, models = [];
+const saveSettings = () => store.save('te.settings', settings);
+let saveT; const saveDb = () => { clearTimeout(saveT); saveT = setTimeout(() => store.save('te.db', db), 300); };
+
+const chat = () => db.chats[db.current];
+function newChat() {
+  const id = uid();
+  db.chats[id] = { id, title: 'Новый чат', created: Date.now(), nodes: { root: { id: 'root', children: [], active: 0 } } };
+  db.order.unshift(id); db.current = id; saveDb(); renderAll();
+}
+function addNode(c, parentId, data) {
+  const n = Object.assign({ id: uid(), parent: parentId, children: [], active: 0 }, data);
+  c.nodes[n.id] = n;
+  const p = c.nodes[parentId]; p.children.push(n.id); p.active = p.children.length - 1;
+  return n;
+}
+function pathNodes(c) {
+  const out = []; let n = c.nodes.root;
+  while (n.children.length) { n = c.nodes[n.children[Math.min(n.active, n.children.length - 1)]]; out.push(n); }
+  return out;
+}
+const enc = new TextEncoder();
+const tokensText = toks => {
+  toks = toks.filter(t => !t.end);
+  // tokens may split a UTF-8 character, so join bytes where the server gave them
+  if (toks.some(t => Array.isArray(t.b))) {
+    try { return new TextDecoder().decode(new Uint8Array(toks.flatMap(t => Array.isArray(t.b) ? t.b : Array.from(enc.encode(t.t))))); } catch (e) {}
+  }
+  return toks.map(t => t.t).join('');
+};
+const stripThink = s => s.replace(/<think>[\s\S]*?<\/think>\s*/g, '').replace(/<think>[\s\S]*$/, '').trim();
+
+/* ---------- chat templates ---------- */
+const TEMPLATES = {
+  chatml: {
+    fmt: (sys, msgs) => (sys ? `<|im_start|>system\n${sys}<|im_end|>\n` : '') +
+      msgs.map(m => `<|im_start|>${m.role}\n${m.content}<|im_end|>\n`).join('') + '<|im_start|>assistant\n',
+    stop: ['<|im_end|>', '<|endoftext|>', '<|im_start|>'],
+    noThink: '<think>\n\n</think>\n\n'
+  },
+  llama3: {
+    fmt: (sys, msgs) => (sys ? `<|start_header_id|>system<|end_header_id|>\n\n${sys}<|eot_id|>` : '') +
+      msgs.map(m => `<|start_header_id|>${m.role}<|end_header_id|>\n\n${m.content}<|eot_id|>`).join('') +
+      '<|start_header_id|>assistant<|end_header_id|>\n\n',
+    stop: ['<|eot_id|>', '<|end_of_text|>']
+  },
+  gemma: {
+    fmt: (sys, msgs) => msgs.map((m, i) => `<start_of_turn>${m.role === 'assistant' ? 'model' : 'user'}\n${i === 0 && sys ? sys + '\n\n' : ''}${m.content}<end_of_turn>\n`).join('') + '<start_of_turn>model\n',
+    stop: ['<end_of_turn>', '<eos>']
+  },
+  raw: {
+    fmt: (sys, msgs) => (sys ? sys + '\n\n' : '') + msgs.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}\n`).join('') + 'Assistant:',
+    stop: ['\nUser:']
+  }
+};
+function historyFor(c, node) {
+  const chain = []; let n = c.nodes[node.parent];
+  while (n && n.id !== 'root') { chain.unshift(n); n = c.nodes[n.parent]; }
+  return chain.map(m => ({ role: m.role, content: m.role === 'user' ? m.text : stripThink(tokensText(m.tokens)) }));
+}
+
+/* ---------- server I/O ---------- */
+const base = () => settings.baseUrl.trim().replace(/\/+$/, '');
+function mk(t, p, top, b, noProbs) {
+  top = (top || []).filter(x => x.t != null);
+  if (p == null) { const f = top.find(x => x.t === t); if (f) p = f.p; }
+  if (t != null && p != null && !top.some(x => x.t === t)) top.push({ t, p });
+  top.sort((a, b2) => b2.p - a.p);
+  return { t: t ?? '', p: p ?? null, top, b: Array.isArray(b) ? b : undefined, np: !!noProbs || !top.length, special: HOT_RE.test((t || '').trim()) };
+}
+const fromLp = x => mk(x.token, lp2p(x.logprob), (x.top_logprobs || []).map(y => ({ t: y.token, p: lp2p(y.logprob), b: y.bytes })), x.bytes);
+function parseChunk(j) {
+  // llama.cpp native /completion
+  if (!j.choices && ('content' in j || j.completion_probabilities)) {
+    const cps = j.completion_probabilities;
+    if (cps && cps.length) return cps.map(cp => {
+      const list = cp.top_probs || cp.top_logprobs;
+      if (list) {
+        const tops = list.map(x => ({ t: x.token, p: x.prob != null ? x.prob : lp2p(x.logprob), b: x.bytes }));
+        return mk(cp.token, cp.prob != null ? cp.prob : (cp.logprob != null ? lp2p(cp.logprob) : null), tops, cp.bytes);
+      }
+      if (cp.probs) {
+        const tops = cp.probs.map(x => ({ t: x.tok_str, p: x.prob }));
+        return mk(cp.content, null, tops);
+      }
+      return mk(cp.token ?? cp.content, null, [], null, true);
+    });
+    return j.content ? [mk(j.content, null, [], null, true)] : [];
+  }
+  // OpenAI-compatible
+  const ch = j.choices && j.choices[0];
+  if (!ch) return [];
+  const text = ch.text ?? (ch.delta && ch.delta.content) ?? '';
+  const lp = ch.logprobs;
+  if (lp) {
+    if (Array.isArray(lp.content) && lp.content.length)
+      return lp.content.map(fromLp);
+    if (Array.isArray(lp.tokens) && lp.tokens.length)
+      return lp.tokens.map((t, k) => {
+        const top = lp.top_logprobs && lp.top_logprobs[k];
+        const tops = !top ? [] : Array.isArray(top)
+          ? top.map(y => ({ t: y.token, p: lp2p(y.logprob) }))
+          : Object.entries(top).map(([tt, l]) => ({ t: tt, p: lp2p(l) }));
+        return mk(t, lp.token_logprobs ? lp2p(lp.token_logprobs[k]) : null, tops);
+      });
+  }
+  return text ? [mk(text, null, [], null, true)] : [];
+}
+async function streamCompletion(prompt, stop, signal, onTokens) {
+  const s = settings;
+  const common = {
+    temperature: +s.temperature, top_k: +s.top_k, top_p: +s.top_p, min_p: +s.min_p,
+    repeat_penalty: +s.repeat_penalty, stop, stream: true
+  };
+  if (+s.seed >= 0) common.seed = +s.seed;
+  let url, body;
+  if (s.api === 'llamacpp') {
+    url = base() + '/completion';
+    body = Object.assign({ prompt, n_predict: maxTok(), n_probs: +s.n_probs, post_sampling_probs: !!s.postSampling, cache_prompt: true }, common);
+  } else {
+    url = base() + '/v1/completions';
+    body = Object.assign({ prompt, max_tokens: maxTok(), logprobs: +s.n_probs }, common);
+    if (s.model) body.model = s.model;
+  }
+  await sse(url, body, signal, j => {
+    const toks = parseChunk(j);
+    if (toks.length) onTokens(toks);
+    return j.stop === true;
+  });
+}
+// POST + read an SSE stream; onJson returns true to finish early
+async function sse(url, body, signal, onJson) {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
+  if (!res.ok) {
+    const txt = await res.text(); let msg = txt.slice(0, 300);
+    try { const e = JSON.parse(txt).error; msg = (e && e.message) || e || msg; } catch (e) {}
+    throw new Error(`Сервер ответил ${res.status}: ${msg}`);
+  }
+  const reader = res.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue;
+      const data = line.slice(5).trim();
+      if (data === '[DONE]') return;
+      let j; try { j = JSON.parse(data); } catch (e) { continue; }
+      if (j.error) throw new Error(j.error.message || JSON.stringify(j.error));
+      if (onJson(j)) return;
+    }
+  }
+}
+/* LM Studio: /v1/responses and /v1/chat/completions. The server applies the chat template itself;
+   a trailing assistant message is continued as a prefill (no end-of-turn token), which is what branching needs.
+   Reasoning arrives as a separate stream without logprobs, it is wrapped into synthetic <think> tokens. */
+async function streamLMS(msgs, sys, prefill, thinkOff, signal, onTokens) {
+  const s = settings, chatApi = s.api === 'chat';
+  msgs = msgs.slice();
+  if (prefill) msgs.push({ role: 'assistant', content: prefill });
+  let url, body;
+  if (chatApi) {
+    url = base() + '/v1/chat/completions';
+    body = {
+      messages: (sys ? [{ role: 'system', content: sys }] : []).concat(msgs), max_tokens: maxTok(),
+      logprobs: true, top_logprobs: +s.n_probs, temperature: +s.temperature, top_p: +s.top_p,
+      top_k: +s.top_k, min_p: +s.min_p, repeat_penalty: +s.repeat_penalty, stream: true
+    };
+    if (+s.seed >= 0) body.seed = +s.seed;
+    if (thinkOff) body.reasoning_effort = 'none';
+  } else {
+    url = base() + '/v1/responses';
+    body = {
+      input: msgs, max_output_tokens: maxTok(), top_logprobs: +s.n_probs, include: ['message.output_text.logprobs'],
+      temperature: +s.temperature, top_p: +s.top_p, stream: true, store: false
+    };
+    if (sys) body.instructions = sys;
+    if (thinkOff) body.reasoning = { effort: 'none' };
+  }
+  if (s.model) body.model = s.model;
+  const open = prefill.lastIndexOf('<think>');
+  const st = { think: open >= 0 && prefill.indexOf('</think>', open) < 0, native: false, tail: '' };
+  const synth = t => ({ t, p: null, top: [], np: true, r: 1 });
+  const reason = d => {
+    const out = [];
+    if (!st.think) { out.push(synth('<think>\n')); st.think = true; }
+    st.native = true; st.tail = d;
+    out.push(Object.assign(mk(d, null, [], null, true), { r: 1 }));
+    return out;
+  };
+  const answer = (lps, text) => {
+    const toks = lps && lps.length ? lps.map(fromLp) : text ? [mk(text, null, [], null, true)] : [];
+    // close the block only after native reasoning; a prefilled <think> is closed by the model in plain text
+    // (the server strips the tag and, on GGUF, the blank line after it, so both are restored here)
+    if (toks.length && st.think && st.native) {
+      toks.unshift(synth((st.tail.endsWith('\n') ? '' : '\n') + '</think>' + (toks[0].t.startsWith('\n') ? '' : '\n\n')));
+      st.think = false;
+    }
+    return toks;
+  };
+  await sse(url, body, signal, j => {
+    let toks = [];
+    if (chatApi) {
+      const ch = j.choices && j.choices[0]; if (!ch) return false;
+      const d = ch.delta || {}, r = d.reasoning_content || d.reasoning;
+      if (r) toks = reason(r);
+      toks = toks.concat(answer(ch.logprobs && ch.logprobs.content, d.content));
+    } else {
+      const ty = j.type || '';
+      if (/^response\.reasoning.*\.delta$/.test(ty)) { if (j.delta) toks = reason(j.delta); }
+      else if (ty === 'response.output_text.delta') toks = answer(j.logprobs, j.delta);
+      else if (ty === 'response.failed' || ty === 'error') throw new Error((j.response && j.response.error && j.response.error.message) || j.message || 'Сервер прервал генерацию');
+      else if (ty === 'response.completed' || ty === 'response.incomplete') return true;
+    }
+    if (toks.length) onTokens(toks);
+    return false;
+  });
+}
+/* Own server (server.py): it renders the model's chat template itself and continues from token ids,
+   so a branch replays exactly the tokens that were generated. `force` tokens are fed instead of sampling
+   and come back with full statistics: that is how an alternative or the user's own text gets its probabilities. */
+// the answer so far as the server wants it: token ids where known, text otherwise; prompt parts and the end token are skipped
+const exPrefix = (node, upto) => node.tokens.slice(0, upto)
+  .filter((t, k) => !t.syn && !t.end && !(k === 0 && t.id == null && !node.thinkOff && t.t.trim() === '<think>'))
+  .map(t => t.id != null ? t.id : t.t).filter(x => x !== '');
+async function streamExplorer(msgs, sys, node, force, signal, onTokens) {
+  const s = settings;
+  const prefix = exPrefix(node, node.tokens.length);
+  const body = {
+    model: s.model || undefined, messages: (sys ? [{ role: 'system', content: sys }] : []).concat(msgs),
+    prefix, force: force || [], thinking: !node.thinkOff, max_tokens: maxTok(), n_probs: +s.n_probs,
+    temperature: +s.temperature, top_k: +s.top_k, top_p: +s.top_p, min_p: +s.min_p, repeat_penalty: +s.repeat_penalty, seed: +s.seed
+  };
+  await sse(base() + '/generate', body, signal, j => {
+    if (j.type === 'start') {
+      node.srv = { prompt: j.prompt_tokens, cached: j.cached_tokens, vocab: j.vocab };
+      if (j.think_open && !node.tokens.length) onTokens([{ t: '<think>\n', p: null, top: [], np: true, syn: 1 }]);
+    } else if (j.type === 'token') {
+      const t = { t: j.t, id: j.id, p: j.p, rank: j.rank, H: j.H, n: j.n, m: j.m, top: j.top, np: false, special: !!j.eos || HOT_RE.test(j.t.trim()) };
+      if (j.q != null) t.q = j.q; else t.cut = j.cut;
+      if (j.forced) t.manual = true;
+      if (j.eos) t.end = 1;
+      onTokens([t]);
+    } else if (j.type === 'done') return true;
+    return false;
+  });
+}
+async function checkConnection() {
+  const dot = $('#connDot'), hint = $('#connHint');
+  dot.className = 'dot'; hint.className = 'hint'; hint.textContent = 'Проверяю…';
+  try {
+    const r = await fetch(base() + '/v1/models');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    models = (j.data || j.models || []).map(m => m.id || m.name).filter(Boolean);
+    if (!settings.model && models[0]) { settings.model = models[0]; saveSettings(); }
+    connOk = true; dot.className = 'dot ok'; hint.className = 'hint ok';
+    hint.textContent = `Сервер на связи, моделей: ${models.length}.`;
+  } catch (e) {
+    models = []; connOk = false;
+    dot.className = 'dot err'; hint.className = 'hint err';
+    hint.textContent = 'Нет ответа от сервера. Проверьте, что он запущен, и что в LM Studio включён CORS (Developer, Server Settings).';
+  }
+  fillModels(); renderHeader();
+  if (!busy && !(chat() && pathNodes(chat()).length)) renderMessages();
+}
+function fillModels() {
+  const sel = $('#modelSel'); sel.innerHTML = '';
+  const list = models.slice();
+  if (settings.model && !list.includes(settings.model)) list.unshift(settings.model);
+  if (!list.length) sel.append(h('option', { value: '' }, 'Список пуст'));
+  for (const m of list) sel.append(h('option', { value: m }, m));
+  sel.value = settings.model || '';
+}
+
+/* ---------- generation ---------- */
+async function generate(c, node, prefix, force) {
+  const lms = isLMS(), ex = isEx();
+  const T = lms || ex ? { stop: [] } : TEMPLATES[settings.template] || TEMPLATES.chatml;
+  if (node.thinkOff == null) node.thinkOff = settings.thinking === 'off' && (lms || ex || !!T.noThink);
+  let prompt = '';
+  if (!lms && !ex) {
+    prompt = T.fmt(settings.system.trim(), historyFor(c, node));
+    if (node.thinkOff && T.noThink) prompt += T.noThink;
+    prompt += prefix;
+  }
+  node.params = { temperature: settings.temperature, top_k: settings.top_k, top_p: settings.top_p, min_p: settings.min_p, repeat_penalty: settings.repeat_penalty, model: settings.model, api: settings.api };
+  node.status = 'gen'; node.error = null;
+  busy = true; ctrl = new AbortController();
+  renderAll();
+  const t0 = performance.now(), n0 = node.tokens.length;
+  genLimit = stepSize() || null; node.stopped = false; node.full = false;
+  try {
+    const push = toks => { node.tokens.push(...toks); scheduleMsg(node); };
+    if (ex) await streamExplorer(historyFor(c, node), settings.system.trim(), node, force, ctrl.signal, push);
+    else if (lms) await streamLMS(historyFor(c, node), settings.system.trim(), prefix, node.thinkOff, ctrl.signal, push);
+    else await streamCompletion(prompt, T.stop, ctrl.signal, push);
+    node.status = 'done';
+  } catch (e) {
+    if (e.name === 'AbortError') { node.status = 'done'; node.stopped = true; }
+    else { node.status = 'error'; node.error = e.message === 'Failed to fetch' ? 'Не удалось связаться с сервером. Он запущен? Включён CORS?' : e.message; }
+  }
+  while (node.tokens.length > n0 && T.stop.includes(node.tokens[node.tokens.length - 1].t.trim())) node.tokens.pop();
+  const dt = (performance.now() - t0) / 1000;
+  node.stats = { gen: node.tokens.length - n0, tps: (node.tokens.length - n0) / Math.max(dt, 0.001) };
+  // a continuation that produced nothing means the model had already finished its turn
+  if (prefix && node.tokens.length === n0 && node.status === 'done' && !node.stopped) node.full = true;
+  genLimit = null; busy = false; ctrl = null; saveDb(); renderAll();
+}
+const lastAssistant = c => { const p = c ? pathNodes(c) : []; const n = p[p.length - 1]; return n && n.role === 'assistant' ? n : null; };
+const isEnded = n => n.full || n.tokens.some(t => t.end);
+// Tab: grow the last answer in place (by one step if a step size is set), mikupad-style
+function continueLast() {
+  const c = chat(), n = lastAssistant(c);
+  if (busy || !n) return;
+  if (isEnded(n)) {
+    const k = n.tokens.findIndex(t => t.end);
+    if (k >= 0) flashTok(n.id, k);
+    return;
+  }
+  closePop(true);
+  generate(c, n, tokensText(n.tokens));
+}
+async function send(text) {
+  text = text.trim();
+  if (!text || busy) return;
+  if (!chat()) newChat();
+  const c = chat();
+  const path = pathNodes(c);
+  const leaf = path.length ? path[path.length - 1] : c.nodes.root;
+  const u = addNode(c, leaf.id, { role: 'user', text });
+  if (c.title === 'Новый чат') c.title = text.slice(0, 48);
+  const a = addNode(c, u.id, { role: 'assistant', tokens: [] });
+  await generate(c, a, '');
+}
+function branchAt(nodeId, i, alt) {
+  if (busy) return;
+  const c = chat(), src = c.nodes[nodeId];
+  const n = addNode(c, src.parent, { role: 'assistant', tokens: src.tokens.slice(0, i).map(t => Object.assign({}, t)), thinkOff: src.thinkOff });
+  const ex = isEx();
+  if (alt) {
+    // our server replays the inserted token itself and returns it with probabilities
+    if (!ex) n.tokens.push({ t: alt.t, p: alt.p ?? null, top: src.tokens[i] ? src.tokens[i].top : [], b: alt.b, manual: true, np: false });
+    n.branch = { pos: i, from: src.tokens[i] ? src.tokens[i].t : '', to: alt.t, custom: !!alt.custom };
+  } else if (i > 0) {
+    n.branch = { pos: i, resample: true };
+  }
+  closePop(true);
+  generate(c, n, tokensText(n.tokens), ex && alt ? [alt.id != null ? alt.id : alt.t] : null);
+}
+function switchVariant(nodeId, dir) {
+  const c = chat(), n = c.nodes[nodeId], p = c.nodes[n.parent];
+  const k = p.children.indexOf(nodeId) + dir;
+  if (k < 0 || k >= p.children.length || busy) return;
+  p.active = k; saveDb(); closePop(true); renderMessages();
+}
+
+/* ---------- heat ---------- */
+const HOT = () => getComputedStyle(document.documentElement).getPropertyValue('--hot').trim() || '224,82,20';
+function entropyNorm(t) {
+  if (!t.top.length) return 0;
+  if (t.H != null) return Math.min(1, t.H / Math.log2(Math.max(2, t.top.length + 1)));
+  const ps = t.top.map(a => a.p); const rest = Math.max(0, 1 - ps.reduce((a, b) => a + b, 0));
+  if (rest > 1e-4) ps.push(rest);
+  const H = -ps.reduce((s, p) => s + (p > 0 ? p * Math.log2(p) : 0), 0);
+  return Math.min(1, H / Math.log2(Math.max(2, ps.length)));
+}
+function entropyBits(t) {
+  if (t.H != null) return t.H;
+  const ps = t.top.map(a => a.p); const rest = Math.max(0, 1 - ps.reduce((a, b) => a + b, 0));
+  if (rest > 1e-4) ps.push(rest);
+  return -ps.reduce((s, p) => s + (p > 0 ? p * Math.log2(p) : 0), 0);
+}
+let hotRGB = '224,82,20';
+function heatBg(t) {
+  const m = settings.heat;
+  if (m === 'off' || t.np || t.p == null || t.manual) return '';
+  if (m === 'uncertain') {
+    const thr = +settings.threshold;
+    if (t.p >= thr) return '';
+    return `rgba(${hotRGB},${(0.16 + 0.5 * (1 - t.p / thr)).toFixed(3)})`;
+  }
+  if (m === 'gradient') return `hsla(${Math.round(120 * t.p)},70%,50%,.26)`;
+  if (m === 'entropy') { const e = entropyNorm(t); return e < 0.08 ? '' : `rgba(${hotRGB},${(0.08 + 0.6 * e).toFixed(3)})`; }
+  return '';
+}
+
+/* ---------- rendering ---------- */
+function renderAll() { renderSidebar(); renderHeader(); renderMessages(); renderComposer(); }
+const fmtDay = ts => {
+  if (!ts) return '';
+  const d = new Date(ts), day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), ago = Math.round((day(new Date()) - day(d)) / 864e5);
+  return ago === 0 ? 'сегодня' : ago === 1 ? 'вчера' : d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+};
+function renderSidebar() {
+  const list = $('#chatList'); list.innerHTML = '';
+  for (const id of db.order) {
+    const c = db.chats[id]; if (!c) continue;
+    const answers = Object.values(c.nodes).filter(n => n.role === 'assistant').length, dec = isDecision(c);
+    list.append(h('div', { class: 'chatItem' + (id === db.current ? ' on' : '') },
+      h('button', { class: 't', title: c.title, onclick: () => { if (busy) return; db.current = id; saveDb(); closePop(true); $('#app').classList.remove('sideOpen'); renderAll(); } },
+        h('span', { class: 'ti' }, c.title),
+        h('span', { class: 'me' }, [dec ? `решение, прогонов: ${c.runs.length}` : answers ? `ответов и веток: ${answers}` : 'пока пусто', fmtDay(c.created)].filter(Boolean).join(' · '))),
+      h('button', { class: 'x', title: 'Удалить чат', 'aria-label': 'Удалить чат', onclick: () => {
+        if (busy || !confirm(`Удалить «${c.title}»?`)) return;
+        delete db.chats[id]; db.order = db.order.filter(x => x !== id);
+        if (db.current === id) db.current = db.order[0] || null;
+        if (!db.current) newChat(); else { saveDb(); renderAll(); }
+      } }, '✕')));
+  }
+}
+const API_NAMES = { responses: 'LM Studio', chat: 'LM Studio', openai: 'OpenAI API', llamacpp: 'llama.cpp', explorer: 'свой сервер' };
+function renderHeader() {
+  $('#modelName').textContent = settings.model || 'модель не выбрана';
+  $('#apiName').textContent = API_NAMES[settings.api] || '';
+  document.querySelectorAll('#heatSeg button').forEach(b => b.classList.toggle('on', b.dataset.heat === settings.heat));
+  const lg = $('#legend');
+  const m = settings.heat;
+  lg.style.display = m === 'off' ? 'none' : 'flex';
+  const c = hotRGB;
+  if (m === 'uncertain') lg.innerHTML = `<span>Подсвечены места, где модель была уверена меньше чем на ${Math.round(settings.threshold * 100)}%</span><i class="bar" style="background:linear-gradient(90deg,rgba(${c},.66),rgba(${c},.16))"></i><span>чем ярче, тем больше сомнений</span>`;
+  if (m === 'gradient') lg.innerHTML = `<span>Вероятность выбранного токена</span><span>0%</span><i class="bar" style="background:linear-gradient(90deg,hsla(0,70%,50%,.5),hsla(60,70%,50%,.5),hsla(120,70%,50%,.5))"></i><span>100%</span>`;
+  if (m === 'entropy') lg.innerHTML = `<span>Подсвечены места, где у модели было много близких вариантов, даже если один из них лидировал</span>`;
+}
+function renderComposer() {
+  const dec = isDecision(chat());
+  document.querySelector('main').classList.toggle('dmode', dec);
+  document.querySelector('.cbox').hidden = dec; document.querySelector('.chint').hidden = dec; $('#dform').hidden = !dec;
+  if (dec) return renderDForm();
+  const b = $('#sendBtn');
+  b.classList.toggle('stop', busy); b.textContent = busy ? '■' : '↑';
+  b.setAttribute('aria-label', busy ? 'Остановить' : 'Отправить');
+  const step = stepSize();
+  const hint = $('#hintText'); hint.innerHTML = '';
+  hint.append('Наведите на слово в ответе, клик откроет подробности. ', h('kbd', null, 'Tab'), step ? ` — следующие ${step} ток.` : ' — продолжить ответ.');
+  const box = $('#steps'); box.innerHTML = '';
+  box.append('Шаг генерации:');
+  for (const v of [0, 1, 8, 16, 32, 64]) box.append(h('button', { class: v === step ? 'on' : '', onclick: () => setStep(v) }, v ? String(v) : 'весь ответ'));
+  if (step && ![1, 8, 16, 32, 64].includes(step)) box.append(h('button', { class: 'on' }, String(step)));
+}
+function setStep(v) {
+  settings.tab_tokens = v; saveSettings();
+  document.querySelector('[data-k=tab_tokens]').value = v;
+  renderComposer(); renderMessages();
+}
+let connOk = null;                                     // null until the first check finishes
+function emptyState() {
+  const demo = [['Модель', .98], [' выбирает', .71], [' слово', .34], [' за', .9], [' словом', .97]];
+  const title = h('h1', null, h('span', { class: 'demo' }, demo.map(([t, p]) => {
+    const s = h('span', { class: 'tok', title: `уверенность ${Math.round(p * 100)}%` }, t);
+    s.style.background = p < 0.6 ? `rgba(${hotRGB},${(0.16 + 0.5 * (1 - p / 0.6)).toFixed(2)})` : '';
+    return s;
+  })));
+  return h('div', { class: 'empty' },
+    connOk === false ? h('div', { class: 'need' }, 'Нет связи с сервером модели. Запустите его и проверьте адрес.',
+      h('button', { onclick: () => showPanel(true) }, 'Открыть настройки')) : null,
+    title,
+    h('p', null, 'У каждого слова ответа были соперники. Здесь видно, из чего выбирала модель, насколько она сомневалась и что было бы, выбери она иначе.'),
+    h('ol', { class: 'how' },
+      h('li', null, h('b', null, 'Подключите модель'), 'Запустите LM Studio или свой сервер и выберите модель в настройках справа.'),
+      h('li', null, h('b', null, 'Задайте вопрос'), 'Ответ появится по токенам. Места, где модель сомневалась, будут подсвечены.'),
+      h('li', null, h('b', null, 'Загляните в токен'), 'Кликните по слову и выберите другой вариант: ответ пойдёт новой веткой.')),
+    h('div', { class: 'cap' }, 'Попробуйте'),
+    h('div', { class: 'chips' }, ['Расскажи короткую сказку про кота', 'Придумай название для кофейни', 'Сколько будет 17 × 23? Объясни'].map(q =>
+      h('button', { onclick: () => send(q) }, q))));
+}
+function renderMessages() {
+  const box = $('#messages'); const st = box.scrollTop;
+  if (isDecision(chat())) return renderDecision(box, chat());
+  const near = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+  box.innerHTML = '';
+  const c = chat(); const path = c ? pathNodes(c) : [];
+  if (!path.length) { box.append(emptyState()); return; }
+  const last = path[path.length - 1];
+  if (last.role === 'assistant' && last.status === 'done' && last.tokens.length && last.tokens.every(t => t.np || t.manual))
+    box.append(h('div', { class: 'warn' }, last.tokens.some(t => t.r)
+      ? 'Ответ оборвался на размышлениях, а для них LM Studio вероятности не отдаёт. Увеличьте «Макс. токенов» или отключите размышления в настройках.'
+      : (last.params && last.params.api) === 'openai'
+        ? 'Сервер не вернул вероятности токенов. В LM Studio эндпоинт /v1/completions всегда отвечает logprobs: null: выберите в настройках протокол «LM Studio, /v1/responses».'
+        : 'Сервер не вернул вероятности токенов, поэтому альтернативы недоступны. Для /v1/responses нужна LM Studio 0.3.39 или новее; запасной вариант — llama-server и нативный протокол.'));
+  const th = h('div', { class: 'thread' });
+  for (const n of path) th.append(n.role === 'user' ? renderUser(c, n) : renderAssistant(c, n));
+  box.append(th);
+  box.scrollTop = near ? box.scrollHeight : st;
+}
+let rafPending = new Set();
+function scheduleMsg(node) {
+  if (rafPending.has(node.id)) return;
+  rafPending.add(node.id);
+  requestAnimationFrame(() => {
+    rafPending.delete(node.id);
+    const old = document.querySelector(`[data-node="${node.id}"]`);
+    if (!old) return renderMessages();
+    const box = $('#messages'); const near = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+    old.replaceWith(renderAssistant(chat(), node));
+    if (near) box.scrollTop = box.scrollHeight;
+  });
+}
+function variantBar(c, n) {
+  const p = c.nodes[n.parent];
+  if (!p || p.children.length < 2) return null;
+  const k = p.children.indexOf(n.id);
+  return h('span', { class: 'variants' },
+    h('button', { disabled: k === 0 || busy, 'aria-label': 'Предыдущая ветка', onclick: () => switchVariant(n.id, -1) }, '‹'),
+    `ветка ${k + 1} из ${p.children.length}`,
+    h('button', { disabled: k === p.children.length - 1 || busy, 'aria-label': 'Следующая ветка', onclick: () => switchVariant(n.id, 1) }, '›'));
+}
+function renderUser(c, n) {
+  const el = h('div', { class: 'msg user', 'data-node': n.id }, n.text);
+  const vb = variantBar(c, n);
+  return vb ? h('div', { style: 'align-self:flex-end;display:flex;flex-direction:column;align-items:flex-end' }, h('div', { class: 'mrow' }, vb), el) : el;
+}
+function renderAssistant(c, n) {
+  const wrap = h('div', { class: 'msg assistant', 'data-node': n.id });
+  const row = h('div', { class: 'mrow' });
+  row.append(h('span', { class: 'who', title: n.params && n.params.model ? 'Модель, которая написала этот ответ' : null },
+    h('span', { class: 'mark', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), ((n.params && n.params.model) || settings.model || 'Модель').split('/').pop()));
+  const vb = variantBar(c, n); if (vb) row.append(vb);
+  if (n.branch) {
+    const b = n.branch;
+    const badge = b.resample
+      ? h('button', { class: 'badge', title: 'Показать место', onclick: () => flashTok(n.id, b.pos) }, `↻ пересэмплировано с токена №${b.pos + 1}`)
+      : h('button', { class: 'badge', title: 'Показать место', onclick: () => flashTok(n.id, b.pos) }, '✎ замена ', h('code', null, vis(b.from)), ' на ', h('code', null, vis(b.to)), ` в токене №${b.pos + 1}`);
+    row.append(badge);
+  }
+  wrap.append(row);
+
+  const toks = n.tokens;
+  const full = toks.map(t => t.t).join('');
+  const oi = full.indexOf('<think>'), ci = full.indexOf('</think>');
+  const ans = h('div', { class: 'answer' });
+  let thinkBox = null, thinkBody = null, thinkCount = 0, off = 0, started = false, tStarted = false;
+  toks.forEach((t, i) => {
+    const s = off; off += t.t.length;
+    const tag = t.t.trim() === '<think>' || t.t.trim() === '</think>';
+    const inThink = oi >= 0 && s >= oi && (ci < 0 || s < ci + 8);
+    if ((tag || t.special) && !settings.showSpecial) return;
+    const chip = tag || t.special;
+    const sp = h('span', { class: 'tok' + (t.manual ? ' manual' : '') + (t.np ? ' np' : '') + (chip ? ' sp' : ''), 'data-i': i });
+    sp.textContent = chip ? t.t.trim() : t.t;
+    const bg = heatBg(t); if (bg) sp.style.background = bg;
+    if (inThink) {
+      if (!thinkBox) {
+        thinkBody = h('div', { class: 'thinkBody' });
+        thinkBox = h('details', { class: 'think' }, h('summary'), thinkBody);
+        thinkBox.open = n.thinkOpen ?? (n.status === 'gen' && ci < 0);
+        thinkBox.addEventListener('toggle', () => { n.thinkOpen = thinkBox.open; });
+      }
+      if (!tStarted && t.t.trim() === '' && !t.manual) sp.classList.add('lead'); else tStarted = true;
+      thinkBody.append(sp); thinkCount++;
+    } else {
+      if (!started && t.t.trim() === '' && !t.manual) sp.classList.add('lead');
+      else started = true;
+      ans.append(sp);
+    }
+  });
+  if (thinkBox) {
+    thinkBox.querySelector('summary').textContent = (n.status === 'gen' && ci < 0 ? 'Размышляет… ' : 'Размышления, ') + thinkCount + ' ток.';
+    wrap.append(thinkBox);
+  }
+  if (n.status === 'gen' && !(thinkBox && ci < 0)) ans.append(h('span', { class: 'caret' }));
+  if (n.status === 'gen' && thinkBox && ci < 0) thinkBody.append(h('span', { class: 'caret' }));
+  if (!toks.length && n.status === 'gen' && !thinkBox) ans.append(h('span', { style: 'color:var(--muted);font:13px var(--sans)' }, 'жду первый токен… '));
+  wrap.append(ans);
+  if (n.status === 'error') wrap.append(h('div', { class: 'errBox' }, n.error));
+
+  if (n.status !== 'gen') {
+    const withP = toks.filter(t => !t.np && t.p != null && !t.manual);
+    const avg = withP.length ? withP.reduce((a, t) => a + t.p, 0) / withP.length : null;
+    const unsure = withP.filter(t => t.p < settings.threshold).length;
+    const foot = h('div', { class: 'mfoot' }), stats = h('div', { class: 'mstats' }), acts = h('div', { class: 'macts' });
+    const stat = (v, label, title) => stats.append(h('span', { title }, h('b', null, v), ' ' + label));
+    stat(toks.length, 'ток.', 'Сколько токенов в ответе');
+    if (n.stats && n.stats.gen) stat(n.stats.tps.toFixed(1), 'ток/с', 'Скорость последней генерации');
+    if (avg != null) {
+      stat(pct(avg), 'уверенность', 'Средняя вероятность выбранных токенов');
+      stat(unsure, 'сомнений', `Токенов с вероятностью ниже порога ${Math.round(settings.threshold * 100)}%`);
+    }
+    if (n.stopped) stats.append(h('span', null, 'остановлено'));
+    if (lastAssistant(c) === n) acts.append(isEnded(n)
+      ? h('span', { class: 'done', title: 'Чтобы продолжить, замените токен конца ответа другим кандидатом или напишите новое сообщение' }, 'ответ завершён')
+      : h('button', { disabled: busy, title: 'Дописать этот ответ. Клавиша Tab', onclick: continueLast }, stepSize() ? `⇥ Ещё ${stepSize()} ток.` : '⇥ Продолжить'));
+    acts.append(h('button', { disabled: busy, title: 'Сгенерировать ответ заново отдельной веткой', onclick: () => branchAt(n.id, 0, null) }, '↻ Другой вариант'));
+    acts.append(h('button', { title: 'Скопировать текст ответа без размышлений', onclick: e => { navigator.clipboard && navigator.clipboard.writeText(stripThink(tokensText(toks))); e.target.textContent = '✓ Скопировано'; } }, 'Копировать'));
+    foot.append(stats, acts);
+    wrap.append(foot);
+  }
+  return wrap;
+}
+function flashTok(nodeId, i) {
+  const el = document.querySelector(`[data-node="${nodeId}"] .tok[data-i="${i}"]`);
+  if (!el) return;
+  const d = el.closest('details'); if (d) d.open = true;
+  el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
+}
+
+/* ---------- popover ---------- */
+let pop = { node: null, i: -1, pinned: false, anchor: null }, hideT = null;
+const fmtN = n => n >= 100000 ? Math.round(n / 1000) + ' тыс' : String(n).replace(/\B(?=(\d{3})+$)/g, ' ');
+// One short human verdict about the token: a coloured tag plus a sentence
+function verdict(n, t) {
+  if (t.syn) return { tag: 'Часть промпта', tone: 'none', text: 'Этот тег поставил шаблон чата, модель его не выбирала.' };
+  if (t.manual) return { tag: 'Вставлен вручную', tone: 'manual', text: t.p != null && t.rank
+    ? `Сама модель дала бы ему ${pct(t.p)}, место ${t.rank}` + (t.cut ? `; фильтр ${CUT[t.cut]} не пропустил бы его вовсе.` : '.')
+    : 'Дальше модель продолжала уже от него.' };
+  if (t.r) return { tag: 'Нет данных', tone: 'none', text: 'Это размышления: LM Studio не отдаёт для них вероятности. Перегенерируйте с этого места, и продолжение придёт уже с кандидатами.' };
+  if (t.np) return { tag: 'Нет данных', tone: 'none', text: 'Сервер не прислал вероятности для этого токена.' };
+  const r = t.rank || t.top.findIndex(a => same(a, t)) + 1;
+  const second = t.top.find(a => !same(a, t));
+  let v;
+  if (r === 1 && t.p >= 0.9) v = { tag: 'Уверенный выбор', tone: 'ok', text: 'Модель почти не сомневалась.' };
+  else if (r === 1) v = { tag: 'Лидер, но были варианты', tone: 'mid', text: second ? `Ближайший соперник ${vis(second.t)} имел ${pct(second.p)}.` : '' };
+  else if (r === 0) v = { tag: 'Редкий выбор', tone: 'low', text: 'Токена нет среди главных кандидатов.' };
+  else v = { tag: `Не лидер: место ${r}`, tone: 'low', text: 'Его вытянул случайный выбор' + (t.q != null ? `: после фильтров шанс был ${pct(t.q)}.` : '.') };
+  if (t.top.length > 1) {
+    if (t.end) v.text += ' Это конец ответа: выберите другой вариант, и модель продолжит говорить.';
+    else if (t.t.trim() === '</think>') v.text += ' Это конец размышлений: выберите другой вариант, и модель продолжит рассуждать.';
+  }
+  return v;
+}
+// The sampler pipeline as a list of stages. Each stage knows how many tokens survive it
+// and what probability a candidate has at that point (null = already removed).
+function stagesFor(n, t) {
+  if (!t.n) return null;
+  const P = n.params || settings, k = +P.top_k, tp = +P.top_p, mp = +P.min_p, T = +P.temperature, pen = +P.repeat_penalty;
+  const off = 'Выключен: все токены проходят дальше.', offFx = 'фильтр выключен: p<sub>i</sub> не меняются';
+  const st = [{ key: 'model', name: 'Модель', val: 'всё', count: (n.srv && n.srv.vocab) || null, on: true, prob: a => a.p,
+    text: 'Что предлагает сама модель, до любых фильтров. Для каждого токена словаря она выдаёт оценку, оценки пересчитываются в вероятности.',
+    fx: 'p<sub>i</sub> = e<sup>z<sub>i</sub></sup> / Σ<sub>j</sub> e<sup>z<sub>j</sub></sup>, &nbsp;z — оценки модели (логиты)' }];
+  if (t.top.some(a => a.pp != null)) st.push({ key: 'pen', name: 'Штраф', val: '×' + (pen || '?'), count: st[0].count, on: true, prob: a => a.pp,
+    text: 'Штраф за повторы понижает токены, которые уже встречались в последних 64 токенах текста. Никого не убирает, но меняет порядок.',
+    fx: `z<sub>i</sub> → z<sub>i</sub> / r при z<sub>i</sub> &gt; 0, &nbsp;z<sub>i</sub> · r при z<sub>i</sub> &lt; 0, &nbsp;r = ${pen || '?'}` });
+  if (t.m && t.top.some(a => a.k != null)) {
+    // the leader's share when min-p looks at the list, to show the real threshold
+    const lead = Math.max(0, ...t.top.filter(a => a.k != null && a.cut !== 'top_k' && a.cut !== 'top_p').map(a => a.k / t.m[0]));
+    st.push(
+      { key: 'top_k', name: 'Top-K', val: k > 0 ? k : 'выкл', count: t.n[0], on: k > 0, prob: a => a.cut === 'top_k' ? null : a.k,
+        text: k > 0 ? `Оставляет ${k} самых вероятных токенов, остальные отбрасывает. Вероятности оставшихся пересчитываются, чтобы снова давать 100%.` : off,
+        fx: k > 0 ? `оставить K = ${k} наибольших; &nbsp;p<sub>i</sub> → p<sub>i</sub> / Σ<sub>ост.</sub> p<sub>j</sub>` : offFx },
+      { key: 'top_p', name: 'Top-P', val: tp < 1 ? tp : 'выкл', count: t.n[1], on: tp < 1, prob: a => a.cut === 'top_k' || a.cut === 'top_p' ? null : a.k / t.m[0],
+        text: tp < 1 ? `Идёт от лидера вниз и берёт токены, пока их сумма не наберёт ${Math.round(tp * 100)}%. Длинный хвост маловероятных отбрасывает.` : off,
+        fx: tp < 1 ? `оставить первые n: &nbsp;p<sub>1</sub> + … + p<sub>n</sub> ≥ ${tp}; &nbsp;p<sub>i</sub> → p<sub>i</sub> / Σ<sub>ост.</sub> p<sub>j</sub>` : offFx },
+      { key: 'min_p', name: 'Min-P', val: mp > 0 ? mp : 'выкл', count: t.n[2], on: mp > 0, prob: a => a.cut ? null : a.k / t.m[1],
+        text: mp > 0 ? `Убирает токены, которые слабее ${+(mp * 100).toFixed(1)}% от лидера. Чем увереннее лидер, тем строже отбор.` : off,
+        fx: mp > 0 ? `оставить p<sub>i</sub> ≥ ${mp} · p<sub>max</sub> = ${mp} × ${(lead * 100).toFixed(1)}% = ${(mp * lead * 100).toFixed(2)}%` : offFx });
+  }
+  st.push({ key: 'temp', name: 'Итог', val: 'T ' + T, count: t.n[2], on: T !== 1, prob: a => a.cut ? null : a.q,
+    text: (T <= 0 ? 'Temperature 0: случайности нет, всегда берётся лидер.'
+      : T < 1 ? `Temperature ${T} меньше 1: разрыв между кандидатами растёт, лидеры получают больше, слабые меньше.`
+      : T > 1 ? `Temperature ${T} больше 1: разница сглаживается, слабые кандидаты получают больше шансов.`
+      : 'Temperature 1 ничего не меняет.') + ' Получаются итоговые шансы, и токен выбирается случайно, как бросок кубика с такими гранями.',
+    fx: T <= 0 ? 'q = 1 у лидера, 0 у остальных' : `q<sub>i</sub> = p<sub>i</sub><sup>1/T</sup> / Σ<sub>j</sub> p<sub>j</sub><sup>1/T</sup>, &nbsp;1/T = ${(1 / T).toFixed(2)}` });
+  return st;
+}
+// A wider look at one position: ask our server to score the same token again with a longer candidate list
+const moreCache = new Map();
+async function fetchMore(c, node, i, t, count) {
+  const P = node.params || settings, sys = settings.system.trim();
+  let ev = null;
+  await sse(base() + '/generate', {
+    model: P.model || settings.model || undefined, messages: (sys ? [{ role: 'system', content: sys }] : []).concat(historyFor(c, node)),
+    prefix: exPrefix(node, i), force: [t.id], thinking: !node.thinkOff, max_tokens: 0, n_probs: count,
+    temperature: +P.temperature, top_k: +P.top_k, top_p: +P.top_p, min_p: +P.min_p, repeat_penalty: +(P.repeat_penalty ?? settings.repeat_penalty)
+  }, undefined, j => { if (j.type === 'token') ev = j; return j.type === 'done'; });
+  if (!ev) throw new Error('empty');
+  return ev.top;
+}
+let lastStage = 'model', playT = null;
+function openPop(nodeId, i, anchor, pinned) {
+  const c = chat(); const n = c && c.nodes[nodeId]; const t = n && n.tokens[i];
+  if (!t) return;
+  clearTimeout(hideT); clearInterval(playT);
+  if (pop.anchor) pop.anchor.classList.remove('focus');
+  pop = { node: nodeId, i, pinned, anchor, step: null };
+  anchor.classList.add('focus');
+  const el = $('#pop'); el.innerHTML = ''; el.classList.toggle('full', pinned); el.style.maxHeight = '';
+  const v = verdict(n, t);
+  el.append(h('div', { class: 'ph' },
+    h('span', { class: 'idx' }, '№' + (i + 1)),
+    h('code', { title: JSON.stringify(t.t) + (t.id != null ? ', id ' + t.id : '') }, vis(t.t || (t.top.find(a => same(a, t)) || {}).t)),
+    h('span', { class: 'p', title: 'Вероятность этого токена у модели, до фильтров' }, pct(t.p)),
+    pinned ? h('button', { class: 'pin', 'aria-label': 'Закрыть', onclick: () => closePop(true) }, '✕') : null));
+  el.append(h('div', { class: 'verdict' }, h('span', { class: 'tag ' + v.tone }, v.tag), v.text));
+
+  const shown = t.top.slice(0, pinned ? Math.max(+settings.n_probs, 2) : 5);
+  if (pinned && !shown.some(a => same(a, t))) { const own = t.top.find(a => same(a, t)); if (own) shown.push(own); }
+  let fixSize = null;
+  if (shown.length) {
+    const st = pinned ? stagesFor(n, t) : null;
+    const stages = st || [{ key: 'model', prob: a => a.p, count: null }];
+    const btns = [], rows = [], calm = matchMedia('(prefers-reduced-motion:reduce)').matches;
+    let textEl = null, fxEl = null, cur = 0, raf = 0;
+    if (st) {
+      el.append(h('div', { class: 'sect' }, 'Как отбирался токен',
+        h('button', { class: 'play', title: 'Пройти все этапы по очереди. Клавиши ← и → переключают этапы', onclick: () => {
+          clearInterval(playT); setStage(0);
+          playT = setInterval(() => { if (cur >= stages.length - 1) clearInterval(playT); else setStage(cur + 1); }, 2200);
+        } }, '▶ показать по шагам')));
+      const bar = h('div', { class: 'stages' });
+      st.forEach((S, k) => {
+        const b = h('button', { class: 'stg' + (S.on ? '' : ' off'), onclick: () => { clearInterval(playT); setStage(k); } },
+          h('b', null, S.name), h('i', null, String(S.val)), h('span', { title: 'Сколько токенов осталось после этого этапа' }, S.count != null ? fmtN(S.count) : '—'));
+        btns.push(b); bar.append(b);
+      });
+      textEl = h('div', { class: 'stgWords' }); fxEl = h('div', { class: 'fx' });
+      el.append(bar, h('div', { class: 'stgText' }, textEl, fxEl));
+      el.append(h('div', { class: 'acap' }, h('span', null, 'место'), h('span', { title: 'В скобках — изменение к предыдущему этапу в процентных пунктах' }, 'шанс (к прошлому этапу, п.п.)')));
+    }
+    const alts = h('div', { class: 'alts' + (st ? ' rk' : '') });
+    const cells = () => [st ? h('span', { class: 'dl' }) : null, h('span', { class: 'r' }), h('code'), h('span', { class: 'bar' }, h('i')), h('span', { class: 'pp' }, h('b'), st ? h('i') : null)];
+    const makeRow = a => {
+      const chosen = same(a, t);
+      const row = h(pinned ? 'button' : 'div', { class: 'alt' + (chosen ? ' chosen' : ''), disabled: pinned && (chosen || busy), onclick: pinned ? () => branchAt(nodeId, i, a) : null },
+        cells(), pinned ? h('span', { class: 'go' }, chosen ? '✓' : '→') : null);
+      row.querySelector('code').textContent = vis(a.t);
+      rows.push(row); return row;
+    };
+    shown.forEach(a => alts.append(makeRow(a)));
+    const canMore = !!st && t.id != null && isEx();
+    const restRow = h(canMore ? 'button' : 'div', { class: 'alt rest', title: canMore ? 'Показать ещё 25 кандидатов, которые идут следом' : null, onclick: canMore ? () => more() : null }, cells());
+    restRow.querySelector('.r').textContent = '…';
+    alts.append(restRow);
+    el.append(alts);
+    const probs = s => shown.map(a => { const x = stages[s].prob(a); return x == null || isNaN(x) ? null : x; });
+    // standings of a stage: survivors by probability, then the eliminated ones in their original order
+    const standing = vals => {
+      const alive = vals.map((x, k) => k).filter(k => vals[k] != null).sort((a, b) => vals[b] - vals[a] || a - b);
+      const rank = []; alive.forEach((k, pos) => { rank[k] = pos + 1; });
+      return { alive, gone: vals.map((x, k) => k).filter(k => vals[k] == null), rank };
+    };
+    const one = x => (x * 100).toFixed(1) + '%';
+    const paint = (row, v, d) => {
+      row.querySelector('.pp b').textContent = pct(v);
+      const di = row.querySelector('.pp i'); if (!di) return;
+      if (d == null) { di.textContent = ''; return; }
+      const x = d * 100, zero = Math.abs(x) < 0.05;
+      di.textContent = zero ? '(0)' : `(${x > 0 ? '+' : '−'}${Math.abs(x).toFixed(1)})`;
+      di.className = zero ? '' : x > 0 ? 'up' : 'dn';
+    };
+    // numbers run from what is on screen to the new values together with the bars
+    const tween = (items, instant) => {
+      cancelAnimationFrame(raf);
+      const from = items.map(([row]) => [row._v || 0, row._d || 0]), t0 = performance.now(), D = 1000;
+      const frame = now => {
+        const k = instant ? 1 : Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - k, 3);
+        items.forEach(([row, v, d], x) => {
+          row._v = from[x][0] + (v - from[x][0]) * e; row._d = d == null ? 0 : from[x][1] + (d - from[x][1]) * e;
+          paint(row, k === 1 ? v : row._v, d == null ? null : k === 1 ? d : row._d);
+        });
+        if (k < 1) raf = requestAnimationFrame(frame);
+      };
+      frame(t0);
+    };
+    const setStage = (s, instant) => {
+      instant = instant || calm;
+      cur = s; const S = stages[s];
+      if (st) lastStage = S.key;
+      const vals = probs(s), was = s > 0 ? probs(s - 1) : null, now = standing(vals), before = was ? standing(was).rank : null;
+      // FLIP: remember where every row is, reorder, then let each row glide from its old place
+      const moving = [...rows, restRow], from = instant ? null : moving.map(e => e.hidden ? null : e.getBoundingClientRect().top);
+      now.alive.forEach(k => alts.append(rows[k])); alts.append(restRow); now.gone.forEach(k => alts.append(rows[k]));
+      const rest = v => Math.max(0, 1 - v.reduce((x, y) => x + (y || 0), 0));
+      const restP = rest(vals), max = Math.max(...vals.map(x => x || 0), restP > 0.0005 ? Math.min(restP, 1) : 0, 1e-9);
+      const items = [];
+      rows.forEach((row, r) => {
+        const a = shown[r], x = vals[r], gone = x == null, chosen = same(a, t);
+        row.classList.toggle('cut', gone);
+        row.classList.toggle('out', gone && a.cut === S.key);
+        row.querySelector('.r').textContent = gone ? '' : st || !chosen ? now.rank[r] : '✓';
+        const dl = row.querySelector('.dl');
+        if (dl) {
+          const known = !gone && before && before[r] != null, d = known ? before[r] - now.rank[r] : 0;
+          dl.textContent = d > 0 ? '▲' + d : d < 0 ? '▼' + -d : known ? '—' : '';
+          dl.className = 'dl' + (d > 0 ? ' up' : d < 0 ? ' dn' : '');
+          dl.title = d ? `${d > 0 ? 'Поднялся' : 'Опустился'} на ${Math.abs(d)} по сравнению с предыдущим этапом` : known ? 'Место не изменилось' : '';
+        }
+        row.querySelector('.bar i').style.width = gone ? '0' : (x / max * 100).toFixed(1) + '%';
+        row.title = gone ? `Отсечён фильтром ${CUT[a.cut]}: выпасть уже не мог. Но продолжить ответ с него можно`
+          : chosen ? 'Этот токен был выбран' : pinned ? 'Продолжить ответ с этого варианта' : '';
+        if (gone) {
+          row.querySelector('.pp b').textContent = '✕ ' + (CUT[a.cut] || '');
+          const di = row.querySelector('.pp i'); if (di) di.textContent = '';
+          row._v = 0; row._d = 0;
+        } else items.push([row, x, was && was[r] != null ? x - was[r] : null]);
+      });
+      const alive = now.alive.length, restN = S.count != null ? S.count - alive : null;
+      restRow.hidden = restP < 0.0005 || restN === 0;
+      restRow.querySelector('code').textContent = restN != null ? `ещё ${fmtN(restN)} ток.` + (canMore && !restRow.dataset.done ? ' ▾' : '') : 'остальные';
+      restRow.querySelector('.bar i').style.width = Math.min(100, restP / max * 100).toFixed(1) + '%';
+      if (!restRow.hidden) items.push([restRow, restP, was ? restP - rest(was) : null]);
+      tween(items, instant);
+      if (from) moving.forEach((e, k) => {
+        if (from[k] == null || e.hidden) return;
+        const d = from[k] - e.getBoundingClientRect().top;
+        if (!d) return;
+        e.style.transition = 'none'; e.style.transform = `translateY(${d}px)`; e.style.zIndex = d > 0 ? 2 : 1;
+        e.getBoundingClientRect();                       // commit the starting position before animating
+        e.style.transition = 'transform 1s cubic-bezier(.3,.7,.2,1)'; e.style.transform = '';
+      });
+      btns.forEach((b, k) => b.classList.toggle('on', k === s));
+      if (textEl) {
+        const prev = s > 0 ? stages[s - 1].count : null;
+        textEl.innerHTML = '';
+        textEl.append(h('b', null, S.name + (S.key === 'model' || S.key === 'temp' ? '' : ' ' + S.val) + '. '), S.text,
+          prev != null && S.key !== 'temp' && S.key !== 'pen' ? (prev === S.count ? ' Никого не убрал.' : ` Было ${fmtN(prev)}, осталось ${fmtN(S.count)}.`) : '');
+        // the formula of the stage and what it did to the chosen token
+        const me = shown.findIndex(a => same(a, t)), name = vis(t.t || (shown[me] || {}).t);
+        const line = h('div', { class: 'ex' });
+        if (me >= 0) line.append(h('code', null, name), ': ',
+          was == null ? one(vals[me] || 0) : was[me] == null ? 'уже отсечён' : vals[me] == null ? `${one(was[me])} → отсечён` : `${one(was[me])} → ${one(vals[me])}`,
+          S.key === 'temp' && vals[me] != null && !t.manual ? ' — и выпал именно он' : '');
+        fxEl.innerHTML = S.fx; fxEl.append(line);
+      }
+    };
+    async function more() {
+      if (busy || restRow.dataset.done || restRow.dataset.wait) return;
+      const key = nodeId + ':' + i, label = restRow.querySelector('code');
+      try {
+        let extra = moreCache.get(key);
+        if (!extra) {
+          restRow.dataset.wait = 1; label.textContent = 'загружаю…';
+          extra = await fetchMore(c, n, i, t, shown.length + 25);
+          moreCache.set(key, extra);
+        }
+        if (pop.node !== nodeId || pop.i !== i || !alts.isConnected) return;
+        const have = new Set(shown.map(a => a.id));
+        extra.filter(a => !have.has(a.id)).slice(0, 25).forEach(a => { shown.push(a); alts.insertBefore(makeRow(a), restRow); });
+        restRow.dataset.done = 1; restRow.title = 'Дальше список не раскрывается';
+        setStage(cur, true);
+        alts.scrollBy({ top: alts.clientHeight * 0.6, behavior: calm ? 'auto' : 'smooth' });
+      } catch (e) { label.textContent = 'не удалось загрузить'; }
+      delete restRow.dataset.wait;
+    }
+    pop.step = st ? d => { clearInterval(playT); setStage(Math.min(stages.length - 1, Math.max(0, cur + d))); } : null;
+    setStage(Math.max(0, stages.findIndex(S => S.key === lastStage)), true);
+    // the list keeps one height on every stage (a row may hide) and scrolls once extra candidates are loaded
+    if (st) fixSize = space => {
+      alts.style.height = '';
+      const rowH = rows[0].offsetHeight + 1, full = (rows.length + 1) * rowH;
+      const room = space - (el.scrollHeight - alts.offsetHeight);            // what is left for the list
+      alts.style.height = Math.min(full, Math.max(3 * rowH, Math.floor(room / rowH) * rowH)) + 'px';
+    };
+  }
+
+  if (pinned) {
+    if (t.p != null && t.top.length) {
+      const H = entropyBits(t), eq = Math.pow(2, H), r = t.rank || t.top.findIndex(a => same(a, t)) + 1;
+      const rest = Math.max(0, 1 - t.top.reduce((x, a) => x + a.p, 0)), vocab = n.srv && n.srv.vocab;
+      const tile = (cap, val, sub, title) => h('div', { class: 'tile', title }, h('small', null, cap), h('b', null, val), h('i', null, sub));
+      el.append(h('div', { class: 'tiles' },
+        tile('Место', r ? String(r) : '—', vocab && t.rank ? `из ${fmtN(vocab)}` : 'среди кандидатов', 'Какое место занимал токен по вероятности у модели. 1 — самый вероятный.'),
+        tile('Неопределённость', '≈ ' + (eq < 10 ? eq.toFixed(1) : Math.round(eq)), 'равных вариантов',
+          `Насколько широким был выбор: как если бы модель выбирала из стольких равновероятных вариантов. 1 — выбора не было. Энтропия ${H.toFixed(2)} бит` + (t.H != null ? ' по всему словарю.' : ' по видимым кандидатам.')),
+        t.n ? tile('Шанс после фильтров', t.cut ? '0%' : pct(t.q), `у модели ${pct(t.p)}`, 'С какой вероятностью этот токен реально мог выпасть после всех фильтров и temperature.')
+            : tile('Вне списка', pct(rest), 'остальные токены', 'Суммарная вероятность всех токенов, которые не попали в показанный список.')));
+    }
+    const inp = h('input', { type: 'text', placeholder: 'свой текст вместо этого токена', spellcheck: 'false', disabled: busy });
+    const go = () => { if (inp.value) branchAt(nodeId, i, { t: inp.value, p: null, custom: true }); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+    el.append(h('div', { class: 'custom' }, inp, h('button', { disabled: busy, onclick: go, title: 'Вставить свой текст и продолжить ответ от него' }, 'Подставить'),
+      h('button', { disabled: busy, onclick: () => branchAt(nodeId, i, null), title: 'Перегенерировать ответ с этого места' }, '↻ Заново отсюда')));
+    const approx = isLMS() && n.tokens.slice(0, i).some(x => x.t.includes('<think>'));
+    el.append(h('div', { class: 'phint' }, busy ? 'Дождитесь окончания генерации, чтобы ветвить.' : 'Клик по варианту, свой текст или «заново» создают новую ветку; исходный ответ сохраняется.' +
+      (approx ? ' Ветка от ответа с размышлениями продолжается приближённо: LM Studio вставляет перед текстом пустой блок <think>. Точное ветвление — с отключёнными размышлениями или через свой сервер.' : '')));
+  } else {
+    el.append(h('div', { class: 'phint' }, 'Клик — как отбирался токен и ветвление'));
+  }
+  el.hidden = false;
+  // Keep the token itself in view: below it, else above, else beside it; if nothing fits, shrink into the larger gap
+  const r = anchor.getBoundingClientRect(), G = 8, pw = el.offsetWidth;
+  const below = innerHeight - r.bottom - 2 * G, above = r.top - 2 * G, right = innerWidth - r.right - 2 * G, leftRoom = r.left - 2 * G;
+  if (fixSize) fixSize(innerHeight - 2 * G);
+  let ph = el.offsetHeight, left = Math.min(Math.max(G, r.left), innerWidth - pw - G), top;
+  if (ph <= below) top = r.bottom + G;
+  else if (ph <= above) top = r.top - ph - G;
+  else if (pw <= Math.max(right, leftRoom)) {
+    left = pw <= right ? r.right + G : r.left - pw - G;
+    top = Math.min(Math.max(G, r.top - 60), innerHeight - ph - G);
+  } else {
+    const room = Math.max(below, above);
+    if (fixSize) fixSize(room);
+    el.style.maxHeight = room + 'px'; ph = Math.min(el.offsetHeight, room);
+    top = below >= above ? r.bottom + G : r.top - ph - G;
+  }
+  el.style.left = left + 'px'; el.style.top = top + 'px';
+}
+function closePop(force) {
+  if (!force && pop.pinned) return;
+  $('#pop').hidden = true; clearInterval(playT);
+  if (pop.anchor) pop.anchor.classList.remove('focus');
+  pop = { node: null, i: -1, pinned: false, anchor: null };
+}
+const tokFromEvent = e => {
+  const sp = e.target.closest && e.target.closest('.tok');
+  if (!sp || !sp.closest('#messages')) return null;
+  const m = sp.closest('[data-node]'); if (!m) return null;
+  return { sp, nodeId: m.dataset.node, i: +sp.dataset.i };
+};
+document.addEventListener('mouseover', e => {
+  const x = tokFromEvent(e);
+  if (x) { if (!pop.pinned && (pop.anchor !== x.sp)) openPop(x.nodeId, x.i, x.sp, false); clearTimeout(hideT); return; }
+  if (e.target.closest && e.target.closest('#pop')) { clearTimeout(hideT); return; }
+  if (!pop.pinned && pop.node) { clearTimeout(hideT); hideT = setTimeout(() => closePop(false), 220); }
+});
+document.addEventListener('click', e => {
+  const x = tokFromEvent(e);
+  if (x) { openPop(x.nodeId, x.i, x.sp, true); return; }
+  if (!e.target.closest('#pop') && pop.node) closePop(true);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePop(true); if (narrow()) $('#drawer').hidden = true; } });
+// arrows walk through the sampler stages of the open token panel
+document.addEventListener('keydown', e => {
+  if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || !pop.step || (e.target.closest && e.target.closest('input,textarea,select'))) return;
+  e.preventDefault(); pop.step(e.key === 'ArrowRight' ? 1 : -1);
+});
+// Tab outside of form fields (or in the composer) generates the next small step; Shift+Tab keeps normal focus navigation
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Tab' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+  const a = document.activeElement;
+  if (a && a !== document.body && a !== input && a.closest('input,textarea,select,#pop,#drawer')) return;
+  if (isDecision(chat())) return;                      // no composer here, keep normal focus navigation
+  e.preventDefault();
+  if (busy) return;
+  if (input.value.trim()) { const v = input.value; input.value = ''; autosize(); send(v); }
+  else continueLast();
+});
+$('#messages').addEventListener('scroll', () => { if (!pop.pinned) closePop(false); });
+
+/* ---------- decision mode ----------
+   An ordinary LLM answers a multiple-choice question in one forward pass: the prompt ends right before the answer,
+   and we read the probabilities of the label tokens ("1", "2", ... or letters) from the next-token distribution.
+   A decision chat is a feed of such runs plus a form (the prompt constructor) instead of the composer. */
+const D_LABELS = {
+  num: { name: '1 2 3', at: k => String(k + 1), how: 'его номером' },
+  lat: { name: 'A B C', at: k => String.fromCharCode(65 + k), how: 'его буквой' },
+  cyr: { name: 'а б в', at: k => 'абвгдежзиклмнопрст'[k] || String(k + 1), how: 'его буквой' }
+};
+const dInstr = scheme => `Выбери один правильный вариант ответа. Ответь только ${D_LABELS[scheme].how}.`;
+const D_TEMPLATE = '{инструкция}\n\nВопрос: {вопрос}\n\nВарианты:\n{варианты}', D_LINE = '{метка}. {текст}';
+const dNewForm = () => ({ instruction: dInstr('num'), question: 'Какая планета ближе всего к Солнцу?', options: ['Венера', 'Меркурий', 'Марс'],
+  labels: 'num', prefix: 'Ответ:', template: D_TEMPLATE, line: D_LINE, adv: false });
+function newDecision() {
+  const id = uid();
+  db.chats[id] = { id, kind: 'decision', title: 'Новое решение', created: Date.now(), nodes: { root: { id: 'root', children: [], active: 0 } }, runs: [], form: dNewForm() };
+  db.order.unshift(id); db.current = id; saveDb(); renderAll();
+}
+const isDecision = c => !!c && c.kind === 'decision';
+const dLabels = f => f.options.map((_, k) => D_LABELS[f.labels].at(k));
+function dPrompt(f) {
+  const labels = dLabels(f);
+  const lines = f.options.map((o, k) => f.line.replace('{метка}', labels[k]).replace('{текст}', o)).join('\n');
+  return { labels, content: f.template.replace('{инструкция}', f.instruction).replace('{вопрос}', f.question).replace('{варианты}', lines) };
+}
+// one pass through the model; everything the card shows is derived from this
+async function dScore(f) {
+  const { labels, content } = dPrompt(f);
+  // a label can be written by several tokens: "1", " 1", "1." ... all of them mean the same answer
+  const spell = l => [...new Set([l, l.toUpperCase(), l.toLowerCase()])].flatMap(x => [x, ' ' + x, x + '.', ' ' + x + '.', x + ')', ' ' + x + ')', '\n' + x]);
+  const res = await fetch(base() + '/score', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    model: settings.model || undefined, messages: [{ role: 'user', content }], thinking: false,
+    prefix: f.prefix ? [f.prefix] : [], watch: labels.flatMap(spell), n_probs: 12, skip_space: true }) });
+  const j = await res.json().catch(() => ({ error: { message: 'Сервер ответил ' + res.status } }));
+  if (!res.ok || j.error) throw new Error((j.error && j.error.message) || 'Сервер ответил ' + res.status);
+  const key = s => s.replace(/[\s.)]/g, '').toLowerCase(), watched = new Set(j.watch.map(w => w.id));
+  const opts = labels.map(l => {
+    const toks = j.watch.filter(w => key(w.text) === l.toLowerCase()).sort((a, b) => b.p - a.p);
+    return { label: l, one: toks[0] ? toks[0].p : 0, mass: toks.reduce((s, w) => s + w.p, 0), toks: toks.slice(0, 4).map(w => ({ t: w.t, p: +w.p.toPrecision(4), rank: w.rank })) };
+  });
+  const inside = opts.reduce((s, o) => s + o.mass, 0);
+  opts.forEach(o => { o.final = inside > 0 ? o.mass / inside : 1 / opts.length; });
+  return { opts, inside, other: j.top.filter(t => !watched.has(t.id)).slice(0, 5).map(t => ({ t: t.t, p: t.p })), skipped: j.skipped || [],
+    prompt: j.prompt, vocab: j.vocab, H: j.H, seconds: j.seconds, promptTokens: j.prompt_tokens, model: j.model };
+}
+const dValid = f => f.question.trim() && f.options.filter(o => o.trim()).length >= 2 && f.options.every(o => o.trim());
+async function dRun() {
+  const c = chat(); if (busy || !isDecision(c) || !isEx() || !dValid(c.form)) return;
+  const run = { id: uid(), created: Date.now(), form: JSON.parse(JSON.stringify(c.form)), status: 'run' };
+  c.runs.push(run);
+  if (c.title === 'Новое решение') c.title = run.form.question.slice(0, 48);
+  busy = true; renderAll();
+  try { run.result = await dScore(run.form); run.status = 'done'; }
+  catch (e) { run.status = 'error'; run.error = e.message === 'Failed to fetch' ? 'Не удалось связаться с сервером. Он запущен?' : e.message; }
+  busy = false; saveDb(); renderAll();
+}
+// Stability: every option visits every position (cyclic shifts), plus a content-free run that shows what the labels attract by themselves
+async function dCheck(run) {
+  if (busy || !isEx()) return;
+  const f = run.form, n = f.options.length;
+  busy = true; run.checking = true; renderAll();
+  try {
+    const rot = [run.result.opts.map(o => o.final)];
+    for (let s = 1; s < n; s++) {
+      const r = await dScore(Object.assign({}, f, { options: f.options.map((_, k) => f.options[(k + s) % n]) }));
+      rot.push(f.options.map((_, i) => r.opts[(i - s + n) % n].final));      // back to the original order of options
+    }
+    const blank = await dScore(Object.assign({}, f, { question: '—', options: f.options.map(() => '—') }));
+    run.check = { rot, bias: blank.opts.map(o => o.final) };
+  } catch (e) { run.checkError = e.message; }
+  busy = false; run.checking = false; saveDb(); renderAll();
+}
+function dChanges(prev, cur) {
+  if (!prev) return [];
+  const out = [], same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  if (prev.instruction !== cur.instruction) out.push('инструкция');
+  if (prev.question !== cur.question) out.push('вопрос');
+  if (!same(prev.options, cur.options)) out.push(same(prev.options.slice().sort(), cur.options.slice().sort()) ? 'порядок вариантов' : 'варианты');
+  if (prev.labels !== cur.labels) out.push('метки');
+  if (prev.prefix !== cur.prefix) out.push('начало ответа');
+  if (prev.template !== cur.template || prev.line !== cur.line) out.push('шаблон');
+  return out;
+}
+let dStage = 'final', dPainters = [];
+const D_STAGES = [['dict', 'Словарь', 'один токен'], ['sum', 'Все написания', 'сумма'], ['final', 'Итог', 'до 100%']];
+function renderDecision(box, c) {
+  box.innerHTML = ''; dPainters = [];
+  const th = h('div', { class: 'thread' });
+  if (!c.runs.length) th.append(h('div', { class: 'empty', style: 'margin-top:2vh' },
+    h('h1', null, 'Решение за один проход'),
+    h('p', null, 'Модель не пишет ответ словами. Она читает вопрос с вариантами, а мы смотрим, какую метку она собиралась назвать следующей, и с какой вероятностью.'),
+    h('ol', { class: 'how' },
+      h('li', null, h('b', null, 'Соберите запрос'), 'Инструкция, вопрос и варианты в форме внизу. Уже подставлен пример.'),
+      h('li', null, h('b', null, 'Запустите'), 'Один проход модели: вероятности меток видны сразу, по этапам.'),
+      h('li', null, h('b', null, 'Меняйте и сравнивайте'), 'Поправьте слово или порядок вариантов и запустите снова: карточка покажет сдвиг.'))));
+  c.runs.forEach((run, k) => th.append(renderRun(c, run, k)));
+  box.append(th);
+  dPaint();
+  box.scrollTop = box.scrollHeight;
+}
+const dPaint = () => dPainters.forEach(fn => fn());
+function renderRun(c, run, k) {
+  const f = run.form, r = run.result, prev = k > 0 ? c.runs[k - 1] : null;
+  const el = h('div', { class: 'run', 'data-run': run.id });
+  const head = h('div', { class: 'mrow' },
+    h('span', { class: 'who' }, h('span', { class: 'mark', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')), 'Прогон ' + (k + 1)),
+    r ? h('span', null, r.model.split('/').pop()) : null);
+  const ch = dChanges(prev && prev.form, f);
+  if (ch.length) head.append(h('span', { class: 'badge', title: 'Что отличается от предыдущего прогона' }, 'изменено: ' + ch.join(', ')));
+  el.append(head, h('div', { class: 'rq' }, f.question));
+  if (run.status === 'run') { el.append(h('div', { class: 'rwait' }, 'считаю…')); return el; }
+  if (run.status === 'error') { el.append(h('div', { class: 'errBox' }, run.error), dFoot(c, run)); return el; }
+
+  const win = r.opts.reduce((a, o, i) => o.final > r.opts[a].final ? i : a, 0), w = r.opts[win];
+  const weak = r.inside < 0.5, tone = weak ? 'low' : w.final >= 0.9 ? 'ok' : 'mid';
+  el.append(h('div', { class: 'verdict' },
+    h('span', { class: 'tag ' + tone }, weak ? 'Ответ ненадёжен' : w.final >= 0.9 ? 'Уверенный ответ' : 'Есть сомнения'),
+    h('b', { class: 'ans' }, `${w.label}. ${f.options[win]}`), ` — ${pct(w.final)}.`,
+    weak ? ` На все варианты вместе пришлось лишь ${pct(r.inside)} вероятности: чаще модель хотела сказать что-то другое.` : ''));
+
+  const bar = h('div', { class: 'stages rstages' }), text = h('div', { class: 'rtext' }), rows = h('div', { class: 'drows' }), others = h('div', { class: 'others' });
+  const btns = D_STAGES.map(([key, name, sub]) => {
+    const b = h('button', { class: 'stg', onclick: () => { dStage = key; dPaint(); } }, h('b', null, name), h('i', null, sub));
+    bar.append(b); return b;
+  });
+  const rowEls = r.opts.map((o, i) => {
+    const row = h('div', { class: 'drow' + (i === win ? ' win' : ''), title: o.toks.length ? 'Засчитанные токены: ' + o.toks.map(t => `«${vis(t.t)}» ${pct(t.p)}`).join(', ') : 'Ни одно написание метки не является отдельным токеном' },
+      h('span', { class: 'lb' }, o.label), h('span', { class: 'tx' }, f.options[i]), h('span', { class: 'bar' }, h('i')), h('span', { class: 'pp' }, h('b'), h('i')));
+    rows.append(row); return row;
+  });
+  const restRow = h('div', { class: 'drow rest' }, h('span', { class: 'lb' }, '…'), h('span', { class: 'tx' }), h('span', { class: 'bar' }, h('i')), h('span', { class: 'pp' }, h('b'), h('i')));
+  rows.append(restRow);
+  // the same option in the previous run, found by its text: the place may have changed
+  const before = prev && prev.result ? f.options.map(o => { const j = prev.form.options.indexOf(o); return j < 0 ? null : prev.result.opts[j]; }) : null;
+  const val = (o, key) => key === 'dict' ? o.one : key === 'sum' ? o.mass : o.final;
+  const delta = (el2, d) => {
+    if (d == null) { el2.textContent = ''; return; }
+    const x = d * 100, zero = Math.abs(x) < 0.05;
+    el2.textContent = zero ? '(0)' : `(${x > 0 ? '+' : '−'}${Math.abs(x).toFixed(1)})`; el2.className = zero ? '' : x > 0 ? 'up' : 'dn';
+  };
+  dPainters.push(() => {
+    const key = dStage, vals = r.opts.map(o => val(o, key)), rest = key === 'final' ? 0 : Math.max(0, 1 - vals.reduce((a, b) => a + b, 0));
+    const max = Math.max(...vals, rest, 1e-9);
+    btns.forEach((b, i) => b.classList.toggle('on', D_STAGES[i][0] === key));
+    rowEls.forEach((row, i) => {
+      row.querySelector('.bar i').style.width = (vals[i] / max * 100).toFixed(1) + '%';
+      row.querySelector('.pp b').textContent = pct(vals[i]);
+      delta(row.querySelector('.pp i'), before && before[i] ? vals[i] - val(before[i], key) : null);
+    });
+    restRow.hidden = key === 'final';
+    restRow.querySelector('.tx').textContent = key === 'dict' ? 'все остальные токены словаря' : 'мимо вариантов';
+    restRow.querySelector('.bar i').style.width = (rest / max * 100).toFixed(1) + '%';
+    restRow.querySelector('.pp b').textContent = pct(rest);
+    const skip = r.skipped.length ? ` Перед меткой модель сначала поставила ${r.skipped.map(s => `«${vis(s.t)}»`).join(' и ')}: позиция ответа сдвинута на этот токен.` : '';
+    text.innerHTML = '';
+    const words = h('div'); text.append(words);
+    if (key === 'dict') words.append(h('b', null, 'Словарь. '), `В позиции ответа модель оценила все ${fmtN(r.vocab)} токенов. Здесь вероятность самого частого написания каждой метки.` + skip);
+    if (key === 'sum') words.append(h('b', null, 'Все написания. '), `Одну метку можно записать разными токенами: «1», « 1», «1.». Они сложены. На варианты вместе пришлось ${pct(r.inside)}, мимо ушло ${pct(1 - r.inside)}.`);
+    if (key === 'final') words.append(h('b', null, 'Итог. '), 'Всё, что не метка, отброшено, а вероятности вариантов пересчитаны так, чтобы давать 100%.' + (r.inside < 0.5 ? ' Осторожно: отброшена большая часть распределения.' : ''));
+    text.append(h('div', { class: 'fx' }, key === 'dict' ? 'p(токен) = softmax(z)' : key === 'sum' ? 'P(k) = Σ p(написания метки k)' : 'P(k) → P(k) / Σ P(j)'));
+    others.hidden = key === 'final' || !r.other.length;
+  });
+  others.append('Что ещё модель хотела сказать: ', ...r.other.flatMap((t, i) => [i ? ', ' : '', h('code', null, vis(t.t)), ' ' + pct(t.p)]));
+  el.append(bar, text, rows, others);
+
+  if (run.check) el.append(dCheckView(run));
+  if (run.checkError) el.append(h('div', { class: 'errBox' }, 'Проверка не удалась: ' + run.checkError));
+  el.append(h('details', { class: 'raw' }, h('summary', null, 'Точный промпт: что увидела модель'), h('pre', null, r.prompt)));
+  el.append(dFoot(c, run));
+  return el;
+}
+function dCheckView(run) {
+  const f = run.form, r = run.result, { rot, bias } = run.check, n = f.options.length;
+  const avg = f.options.map((_, i) => rot.reduce((s, row) => s + row[i], 0) / rot.length);
+  const fix = r.opts.map((o, i) => o.final / Math.max(bias[i], 1e-6)), fixSum = fix.reduce((a, b) => a + b, 0);
+  const winners = rot.map(row => row.indexOf(Math.max(...row))), base = winners[0], held = winners.filter(x => x === base).length;
+  const lean = bias.indexOf(Math.max(...bias));
+  const cell = v => h('td', { style: `background:rgba(130,145,255,${(0.05 + 0.4 * v).toFixed(2)})` }, pct(v));
+  const table = h('table', null,
+    h('tr', null, h('th', null, 'Вариант'), rot.map((_, s) => h('th', { title: 'Вероятность варианта, когда он стоит на этом месте' }, `на ${s + 1}-м месте`)),
+      h('th', null, 'в среднем'), h('th', { title: 'Что получает эта метка, когда вопрос и варианты пусты' }, 'метка сама'), h('th', { title: 'Итог, делённый на смещение метки и пересчитанный до 100%' }, 'с поправкой')),
+    f.options.map((o, i) => h('tr', null, h('td', { class: 'nm' }, `${r.opts[i].label}. ${o}`),
+      rot.map((_, pos) => cell(rot[(i - pos + n) % n][i])), cell(avg[i]), cell(bias[i]), cell(fix[i] / fixSum))));
+  return h('div', { class: 'chk' },
+    h('div', { class: 'cap' }, 'Проверка устойчивости'),
+    h('p', null, held === rot.length ? `Победитель не зависит от порядка: «${f.options[base]}» выигрывает при всех ${rot.length} перестановках.`
+      : `Ответ зависит от порядка: «${f.options[base]}» выигрывает только при ${held} из ${rot.length} перестановок.`,
+      ` Без содержания модель сама тянется к метке «${r.opts[lean].label}» (${pct(bias[lean])}).`),
+    h('div', { class: 'scroll' }, table));
+}
+function dFoot(c, run) {
+  const r = run.result, stats = h('div', { class: 'mstats' }), acts = h('div', { class: 'macts' });
+  if (r) {
+    stats.append(h('span', null, h('b', null, r.seconds.toFixed(2)), ' с'), h('span', null, h('b', null, r.promptTokens), ' ток. в промпте'),
+      h('span', { title: 'Как выбор из стольких равных вариантов по всему словарю' }, 'неопределённость ', h('b', null, '≈ ' + Math.pow(2, r.H).toFixed(1))));
+    acts.append(h('button', { disabled: busy || !!run.check, title: `Ещё ${run.form.options.length} проходов: каждый вариант побывает на каждом месте, плюс проход без содержания`, onclick: () => dCheck(run) },
+      run.checking ? 'проверяю…' : run.check ? '✓ Проверено' : 'Проверить устойчивость'));
+  }
+  acts.append(h('button', { disabled: busy, title: 'Скопировать этот запрос в форму внизу', onclick: () => { c.form = JSON.parse(JSON.stringify(run.form)); saveDb(); renderDForm(); $('#dform').scrollIntoView({ block: 'end' }); } }, 'Взять за основу'));
+  return h('div', { class: 'mfoot' }, stats, acts);
+}
+// The constructor. It is rebuilt only on structural changes, typing just updates the saved draft
+function renderDForm() {
+  const c = chat(), box = $('#dform'); box.innerHTML = '';
+  if (!isDecision(c)) return;
+  const f = c.form, labels = dLabels(f), keep = () => saveDb();
+  const field = (label, key, rows, mono) => {
+    const t = h('textarea', { rows, spellcheck: 'false', style: mono ? 'font:12.5px/1.5 var(--mono)' : null }); t.value = f[key];
+    t.addEventListener('input', () => { f[key] = t.value; keep(); go.disabled = busy || !isEx() || !dValid(f); });
+    return h('label', null, label, t);
+  };
+  const left = h('div', null, field('Инструкция', 'instruction', 2), field('Вопрос', 'question', 3)), right = h('div');
+  const list = h('div', { class: 'dopts' });
+  f.options.forEach((o, k) => {
+    const inp = h('input', { type: 'text', placeholder: 'текст варианта', spellcheck: 'false' }); inp.value = o;
+    inp.addEventListener('input', () => { f.options[k] = inp.value; keep(); go.disabled = busy || !isEx() || !dValid(f); });
+    const move = d => { const j = k + d; [f.options[k], f.options[j]] = [f.options[j], f.options[k]]; keep(); renderDForm(); };
+    list.append(h('div', { class: 'dopt' }, h('span', { class: 'lb' }, labels[k]), inp,
+      h('button', { title: 'Выше', 'aria-label': 'Выше', disabled: k === 0, onclick: () => move(-1) }, '↑'),
+      h('button', { title: 'Ниже', 'aria-label': 'Ниже', disabled: k === f.options.length - 1, onclick: () => move(1) }, '↓'),
+      h('button', { title: 'Удалить вариант', 'aria-label': 'Удалить вариант', disabled: f.options.length <= 2, onclick: () => { f.options.splice(k, 1); keep(); renderDForm(); } }, '✕')));
+  });
+  right.append(h('div', { class: 'dlabel' }, 'Варианты ответа'), list);
+  const body = h('div', { class: 'dbody', hidden: !!f.min }, h('div', { class: 'dgrid' }, left, right));
+  box.append(body);
+  if (f.adv) body.append(field('Шаблон сообщения: {инструкция}, {вопрос}, {варианты}', 'template', 6, true), field('Строка варианта: {метка}, {текст}', 'line', 1, true));
+  const seg = h('div', { class: 'seg', role: 'group', 'aria-label': 'Метки вариантов' }, Object.entries(D_LABELS).map(([key, L]) =>
+    h('button', { class: f.labels === key ? 'on' : '', onclick: () => {
+      if (f.instruction === dInstr(f.labels)) f.instruction = dInstr(key);    // keep the default wording in step with the labels
+      f.labels = key; keep(); renderDForm();
+    } }, L.name)));
+  const pre = h('input', { type: 'text', spellcheck: 'false', title: 'Этими словами начинается ответ модели: сразу после них должна идти метка' }); pre.value = f.prefix;
+  pre.addEventListener('input', () => { f.prefix = pre.value; keep(); });
+  const go = h('button', { class: 'drun', disabled: busy || !isEx() || !dValid(f), title: 'Один проход модели. Ctrl+Enter', onclick: dRun }, busy ? 'Считаю…' : 'Запустить');
+  right.append(h('button', { class: 'dadd', disabled: f.options.length >= 12, onclick: () => { f.options.push(''); keep(); renderDForm(); const all = box.querySelectorAll('.dopt input'); all[all.length - 1].focus(); } }, '+ вариант'));
+  box.append(h('div', { class: 'dbar' },
+    f.min ? h('span', { class: 'dsum' }, f.question || 'вопрос не задан') : null,
+    h('button', { class: 'dadd', hidden: true, disabled: f.options.length >= 12, onclick: () => { f.options.push(''); keep(); renderDForm(); const all = box.querySelectorAll('.dopt input'); all[all.length - 1].focus(); } }, '+ вариант'),
+    f.min ? null : h('span', { class: 'pre' }, 'Метки', seg), f.min ? null : h('label', { class: 'pre' }, 'Начало ответа', pre),
+    f.min ? null : h('button', { class: 'link', onclick: () => { f.adv = !f.adv; keep(); renderDForm(); } }, f.adv ? 'скрыть шаблон' : 'шаблон…'),
+    h('button', { class: 'link', title: 'Свернуть или развернуть форму, чтобы освободить место для ленты', onclick: () => { f.min = !f.min; keep(); renderDForm(); } }, f.min ? 'развернуть ▴' : 'свернуть ▾'), go));
+  if (!isEx()) box.append(h('div', { class: 'dnote' }, 'Этот режим работает только со своим сервером: ему нужны вероятности любых токенов, а не первых кандидатов. Выберите в настройках пресет «Свой сервер».'));
+  box.onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); dRun(); } };
+}
+
+/* ---------- settings drawer ---------- */
+function syncLabels() {
+  document.querySelectorAll('[data-v]').forEach(b => {
+    const k = b.dataset.v, v = settings[k];
+    b.textContent = k === 'top_k' && +v === 0 ? 'выкл' : v;
+  });
+}
+const API_HINTS = {
+  responses: 'Вероятности и ветвление работают, шаблон чата применяет сервер. Из сэмплеров учитываются только Temperature и Top-P. У токенов размышлений вероятностей нет.',
+  chat: 'Вероятности, ветвление и все сэмплеры, включая seed; шаблон чата применяет сервер. У токенов размышлений вероятностей нет.',
+  openai: 'Raw-промпт с шаблоном на клиенте. LM Studio на этом эндпоинте вероятности не отдаёт (logprobs: null), подходит для других серверов.',
+  llamacpp: 'Самый полный режим для llama-server: вероятности всех токенов, включая размышления, и точное ветвление с любой позиции.',
+  explorer: 'Собственный движок (запуск: .venv/bin/python server.py). Вероятности по всему словарю, место токена, действие каждого сэмплера, размышления с вероятностями, точное ветвление по id токенов. Вставленный свой текст тоже получает вероятности.'
+};
+function syncApiUI() {
+  const lms = isLMS() || isEx(), resp = settings.api === 'responses';
+  $('#apiHint').textContent = API_HINTS[settings.api] || '';
+  $('#tplHint').hidden = !lms; $('#sampHint').hidden = !resp;
+  const off = (k, v) => { const el = document.querySelector(`[data-k=${k}]`); el.disabled = v; el.closest('label').classList.toggle('off', v); };
+  off('template', lms);
+  ['top_k', 'min_p', 'repeat_penalty', 'seed'].forEach(k => off(k, resp));
+  off('postSampling', settings.api !== 'llamacpp');
+  const port = (settings.baseUrl.match(/:(\d+)\/?$/) || [])[1];
+  const cur = port === '1234' && lms && !isEx() ? 'lms' : port === '8080' && settings.api === 'llamacpp' ? 'llama' : port === '8090' && isEx() ? 'te' : '';
+  document.querySelectorAll('[data-preset]').forEach(b => b.classList.toggle('on', b.dataset.preset === cur));
+}
+let connT;
+document.querySelectorAll('[data-k]').forEach(el => {
+  const k = el.dataset.k;
+  if (el.type === 'checkbox') el.checked = !!settings[k]; else el.value = settings[k];
+  const ev = (el.tagName === 'SELECT' || el.type === 'checkbox') ? 'change' : 'input';
+  el.addEventListener(ev, () => {
+    settings[k] = el.type === 'checkbox' ? el.checked : (el.type === 'range' || el.type === 'number') ? Number(el.value) : el.value;
+    saveSettings(); syncLabels();
+    if (k === 'baseUrl' || k === 'api') { clearTimeout(connT); connT = setTimeout(checkConnection, 500); }
+    if (k === 'api' || k === 'baseUrl') syncApiUI();
+    if (['threshold', 'showSpecial', 'tab_tokens'].includes(k)) { renderHeader(); renderMessages(); renderComposer(); }
+  });
+});
+$('#modelSel').addEventListener('change', e => { settings.model = e.target.value; saveSettings(); renderHeader(); });
+$('#refreshModels').addEventListener('click', checkConnection);
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  const [url, api] = { lms: ['http://localhost:1234', 'responses'], llama: ['http://localhost:8080', 'llamacpp'], te: ['http://localhost:8090', 'explorer'] }[b.dataset.preset];
+  settings.baseUrl = url; settings.api = api;
+  settings.model = '';
+  document.querySelector('[data-k=baseUrl]').value = settings.baseUrl;
+  document.querySelector('[data-k=api]').value = settings.api;
+  saveSettings(); syncApiUI(); checkConnection();
+}));
+// settings live in a permanent right column; on narrow screens it turns into an overlay and starts closed
+const narrow = () => matchMedia('(max-width:1100px)').matches;
+function showPanel(on) {
+  $('#drawer').hidden = !on;
+  $('#openDrawer').classList.toggle('on', on);
+  if (!narrow()) { settings.panel = on; saveSettings(); }
+}
+$('#openDrawer').addEventListener('click', () => showPanel($('#drawer').hidden));
+$('#modelChip').addEventListener('click', () => showPanel(true));
+$('#closeDrawer').addEventListener('click', () => showPanel(false));
+const syncPanel = () => { $('#drawer').hidden = narrow() || !settings.panel; $('#openDrawer').classList.toggle('on', !$('#drawer').hidden); };
+matchMedia('(max-width:1100px)').addEventListener('change', syncPanel);
+syncPanel();
+document.querySelectorAll('#heatSeg button').forEach(b => b.addEventListener('click', () => {
+  settings.heat = b.dataset.heat; saveSettings(); renderHeader(); renderMessages();
+}));
+
+/* ---------- composer & misc ---------- */
+const input = $('#input');
+const autosize = () => { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 200) + 'px'; };
+input.addEventListener('input', autosize);
+input.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) { const v = input.value; input.value = ''; autosize(); send(v); } }
+});
+$('#sendBtn').addEventListener('click', () => {
+  if (busy) { ctrl && ctrl.abort(); return; }
+  const v = input.value; input.value = ''; autosize(); send(v);
+});
+$('#newChat').addEventListener('click', () => { if (!busy) { newChat(); $('#app').classList.remove('sideOpen'); input.focus(); } });
+$('#newDecision').addEventListener('click', () => { if (!busy) { newDecision(); $('#app').classList.remove('sideOpen'); } });
+$('#burger').addEventListener('click', () => $('#app').classList.toggle('sideOpen'));
+$('#exportBtn').addEventListener('click', () => {
+  const c = chat(); if (!c) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ chat: c, settings }, null, 1)], { type: 'application/json' }));
+  a.download = (c.title || 'chat').replace(/[^\wа-яё -]/gi, '').slice(0, 40) + '.json';
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+/* ---------- boot ---------- */
+hotRGB = HOT();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { hotRGB = HOT(); renderHeader(); renderMessages(); });
+// reset generation flags left from a closed tab
+for (const c of Object.values(db.chats)) for (const n of Object.values(c.nodes)) if (n.status === 'gen') { n.status = 'done'; n.stopped = true; }
+for (const c of Object.values(db.chats)) for (const r of c.runs || []) { if (r.status === 'run') { r.status = 'error'; r.error = 'Прогон прерван закрытием страницы.'; } r.checking = false; }
+if (!db.current || !db.chats[db.current]) { if (db.order.length) db.current = db.order[0]; else newChat(); }
+syncLabels(); syncApiUI(); renderAll(); input.focus();
+(async () => {
+  // opened from server.py for the first time: point the settings at it
+  if (location.protocol.startsWith('http') && firstRun) {
+    try {
+      const j = await (await fetch(location.origin + '/info')).json();
+      if (j.engine === 'token-explorer') {
+        settings.baseUrl = location.origin; settings.api = 'explorer'; settings.model = j.model || ''; saveSettings();
+        document.querySelector('[data-k=baseUrl]').value = settings.baseUrl; document.querySelector('[data-k=api]').value = settings.api;
+        syncApiUI();
+      }
+    } catch (e) {}
+  }
+  checkConnection();
+})();
+</script>
+</body>
+</html>

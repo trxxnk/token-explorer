@@ -1,4 +1,4 @@
-// Lossless screenshot of the page for docs/demo.gif. Paste into the browser console (or run from an agent),
+// Lossless screenshot of the page (for docs/demo.gif and design screens). Paste into the browser console (or run from an agent),
 // start tools/frame_receiver.py, then call:  await snap('01')
 // The page is cloned into an SVG <foreignObject>, drawn on a canvas at 2x and sent to the receiver as PNG.
 window.snap = async (name, scale = 2) => {
@@ -9,6 +9,14 @@ window.snap = async (name, scale = 2) => {
   src.forEach((e, k) => {
     if (e.tagName === 'TEXTAREA') dst[k].textContent = e.value;
     else if (e.tagName === 'INPUT') { dst[k].setAttribute('value', e.value); if (e.checked) dst[k].setAttribute('checked', ''); }
+  });
+  // scroll offsets are not part of the markup either: shift the content of scrolled boxes instead
+  const all = [...document.querySelectorAll('*')], twins = [...clone.querySelectorAll('*')];
+  all.forEach((e, k) => {
+    if (e.scrollTop > 0 && twins[k] && twins[k].firstElementChild) {
+      twins[k].style.overflow = 'hidden';
+      twins[k].firstElementChild.style.marginTop = (parseFloat(getComputedStyle(e.firstElementChild).marginTop) - e.scrollTop) + 'px';
+    }
   });
   // inside an image the colour scheme and vh units are not those of the page: pin the current values
   const cs = getComputedStyle(document.documentElement);

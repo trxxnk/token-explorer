@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 20" width="88" height="80" role="img" aria-label="Token Explorer">
+<rect x="0" y="0" width="6" height="20" rx="2" fill="#18202e"/>
+<rect x="8" y="8" width="6" height="12" rx="2" fill="#3346d3"/>
+<rect x="16" y="14" width="6" height="6" rx="2" fill="#3346d3" opacity=".6"/>
+</svg>

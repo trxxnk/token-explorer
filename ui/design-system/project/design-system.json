@@ -1,0 +1,65 @@
+{
+ "v": 3,
+ "layout": "files",
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-10-09T18:00:36Z"
+ },
+ "title": "Token Explorer — дизайн-система",
+ "namespace": "TokenExplorer",
+ "libraries": [
+  {
+   "name": "react",
+   "version": "18"
+  },
+  {
+   "name": "react-dom",
+   "version": "18"
+  }
+ ],
+ "sections": {},
+ "groups": [
+  "Logos"
+ ],
+ "assetGroups": {
+  "Logos": {
+   "name": "Logos",
+   "tile": "l",
+   "order": [
+    "token-explorer-app-icon.svg",
+    "token-explorer-mark-on-dark.svg",
+    "token-explorer-mark-on-light.svg"
+   ],
+   "files": {
+    "token-explorer-app-icon.svg": {
+     "name": "token-explorer-app-icon.svg",
+     "blob": "2f6505ad67663ca7a9123ed7c6ecb510",
+     "size": 423,
+     "type": "image/svg+xml"
+    },
+    "token-explorer-mark-on-dark.svg": {
+     "name": "token-explorer-mark-on-dark.svg",
+     "blob": "efd9370619f3bab40da18ed4bcd049ca",
+     "size": 353,
+     "type": "image/svg+xml"
+    },
+    "token-explorer-mark-on-light.svg": {
+     "name": "token-explorer-mark-on-light.svg",
+     "blob": "5adde3d9619ffabc6a5e6ddd21b3573f",
+     "size": 353,
+     "type": "image/svg+xml"
+    }
+   }
+  }
+ },
+ "blobs": {},
+ "docs": {
+  "sections": []
+ },
+ "lastChange": {
+  "by": "trxxnk",
+  "at": "2026-10-09T18:20:44Z",
+  "via": "Claude Code",
+  "note": "React-компоненты и типы, живые превью, экраны «Выбор», «Настройки», «Вычёркивание», «Внутри модели», знак в трёх файлах"
+ }
+}

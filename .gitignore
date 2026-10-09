@@ -5,3 +5,4 @@ __pycache__/
 *.pyc
 .DS_Store
 .claude/
+# пакеты и сборка нового интерфейса: см. ui/.gitignore

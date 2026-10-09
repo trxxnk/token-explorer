@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "allowUmdGlobalAccess": true,
+    "types": ["react", "react-dom"]
+  },
+  "include": ["src", "demos"]
+}

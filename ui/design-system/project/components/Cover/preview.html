@@ -1,0 +1,57 @@
+<!-- @dsCard height=300 -->
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Token Explorer</title>
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg); color:var(--ink); overflow:hidden; }
+  .cover { position:relative; height:300px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:300px; overflow:hidden; }
+  .art svg { display:block; }
+  .accent { fill:var(--accent); }
+  .hot { fill:var(--hot); }
+  .deep { fill:var(--panel2); }
+  .ink { fill:var(--ink); }
+  .ground { fill:var(--bg); }
+  .blk { rx:var(--radius-xl); }
+  .bar { rx:4px; }
+  .words { position:absolute; left:var(--space-32); bottom:var(--space-24); max-width:440px; }
+  .name { margin:0; font:600 92px/.95 var(--font-serif); letter-spacing:-.01em; color:var(--ink); }
+  .tag { margin:var(--space-12) 0 0 4px; font:14px/20px var(--font-sans); color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+<div class="art" aria-hidden="true">
+<svg viewBox="0 0 480 300" width="480" height="300">
+<!--
+  blocks      accent 192×240 bled off the top; hot 240×96 bled off the right; panel2 128×112 and ink 96×112 below it, ink bled right
+  arrangement one tall slab with satellites, flush on a 16px gutter (space-16), everything right of x = 480
+  pattern     literal motif: the candidate list — descending probability bars, space-8 tall on a space-24 pitch,
+              cut out of the slab in bg and repeated on panel2 in accent; chosen because the tournament list is the product's signature
+  scales      space-8, space-16, space-24 for sizes and gaps; radius-xl on blocks; bar rx = half of space-8
+-->
+<rect class="accent blk" x="48" y="-16" width="192" height="240"/>
+<rect class="hot blk" x="256" y="48" width="240" height="96"/>
+<rect class="deep blk" x="256" y="160" width="128" height="112"/>
+<rect class="ink blk" x="400" y="160" width="96" height="112"/>
+<rect class="ground bar" x="72" y="56" width="144" height="8"/>
+<rect class="ground bar" x="72" y="80" width="112" height="8"/>
+<rect class="ground bar" x="72" y="104" width="80" height="8"/>
+<rect class="ground bar" x="72" y="128" width="48" height="8"/>
+<rect class="ground bar" x="72" y="152" width="24" height="8"/>
+<rect class="ground bar" x="72" y="176" width="8" height="8"/>
+<rect class="accent bar" x="272" y="184" width="96" height="8"/>
+<rect class="accent bar" x="272" y="208" width="64" height="8"/>
+<rect class="accent bar" x="272" y="232" width="24" height="8"/>
+</svg>
+</div>
+<div class="words">
+<h1 class="name">Token Explorer</h1>
+<p class="tag">что модель могла сказать иначе</p>
+</div>
+</div>
+</body>
+</html>

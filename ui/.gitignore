@@ -1,0 +1,9 @@
+# packages and build output are recreated by `npm install` and `npm run build`
+node_modules/
+out/
+design-system/project/components/bundle.js
+design-system/project/components/bundle.css
+design-system/project/components/index.d.ts
+design-system/project/components/src/
+design-system/project/components/*/preview.html
+!design-system/project/components/Cover/preview.html
