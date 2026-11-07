@@ -5,7 +5,8 @@
   "description": "Компоненты нового интерфейса Token Explorer и сборка дизайн-системы",
   "scripts": {
     "check": "tsc -p tsconfig.json",
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "app": "node build-app.mjs"
   },
   "devDependencies": {
     "@types/react": "18.3.12",

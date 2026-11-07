@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { cx, Brand, Button, Card, Mark, Popover, PopoverHead, Segmented, SegmentedOption } from './base';
+import { cx, Brand, Button, Card, Icon, IconName, Mark, Popover, PopoverHead, Segmented, SegmentedOption, useAutoGrow } from './base';
 import { Stage, StageChain } from './analysis';
 
 export type Status = 'ok' | 'err' | 'idle';
@@ -77,21 +77,29 @@ export interface ComposerProps {
   /** Идёт генерация: кнопка превращается в «Стоп». */
   busy?: boolean;
   onStop?: () => void;
+  /** Слева под полем: выбор режима. */
+  tools?: React.ReactNode;
 }
-export function Composer({ value, placeholder = 'Спросите модель о чём-нибудь…', onChange, onSend, busy, onStop }: ComposerProps) {
+export function Composer({ value, placeholder = 'Спросите модель о чём-нибудь…', onChange, onSend, busy, onStop, tools }: ComposerProps) {
+  const ref = useAutoGrow(value, 9);
   return (
     <div className="te-composer">
       <textarea
-        rows={1}
+        ref={ref}
+        rows={2}
         aria-label="Запрос"
         placeholder={placeholder}
         value={value}
         onChange={e => onChange?.(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSend?.(); } }}
       />
-      {busy
-        ? <Button variant="danger" icon aria-label="Остановить" onClick={onStop}>■</Button>
-        : <Button variant="primary" icon aria-label="Отправить" onClick={onSend}>↑</Button>}
+      <div className="te-composer__bar">
+        {tools}
+        <span className="te-top__sp" />
+        {busy
+          ? <Button variant="danger" icon aria-label="Остановить" onClick={onStop}><Icon name="stop" size={18} /></Button>
+          : <Button variant="primary" icon aria-label="Отправить" disabled={!value || !value.trim()} onClick={onSend}><Icon name="up" size={18} /></Button>}
+      </div>
     </div>
   );
 }
@@ -195,13 +203,15 @@ export interface TokenPanelProps {
   tiles?: React.ReactNode;
   /** Свой текст, «Заново отсюда». */
   actions?: React.ReactNode;
+  /** Значки в шапке, как у карточки при наведении. */
+  tools?: React.ReactNode;
   note?: React.ReactNode;
   onClose?: () => void;
 }
-export function TokenPanel({ index, token, value, verdict, stages, active, onStage, onPlay, children, tiles, actions, note, onClose }: TokenPanelProps) {
+export function TokenPanel({ index, token, value, verdict, stages, active, onStage, onPlay, children, tiles, actions, tools, note, onClose }: TokenPanelProps) {
   return (
     <Popover size="panel" label={`Токен ${index}`}>
-      <PopoverHead index={index} token={token} value={value} onClose={onClose} />
+      <PopoverHead index={index} token={token} value={value} tools={tools} onClose={onClose} />
       {verdict}
       <div className="te-card__head">
         <p className="te-cap">Как отбирался токен</p>
@@ -258,11 +268,30 @@ export interface Section {
   label: string;
   /** Сколько прогонов сохранено. */
   count?: number;
+  icon?: IconName;
+  /** Что за технология, коротко: «текст по токенам». */
+  text?: string;
+  /** Режим ещё не готов: строка видна с плашкой «Скоро» и не нажимается. */
+  soon?: boolean;
 }
 export interface HistoryItem {
   id: string;
   title: string;
   meta?: string;
+  /** Значок вида: разговор, выбор из вариантов. */
+  icon?: IconName;
+}
+export interface HistoryAction {
+  id: string;
+  label: string;
+  icon: IconName;
+  /** Удаление: просит второе нажатие и красится в err. */
+  danger?: boolean;
+}
+export interface AsideProps {
+  /** Заголовок правой панели. */
+  title: string;
+  children: React.ReactNode;
 }
 export interface AppShellProps {
   title: string;
@@ -276,8 +305,20 @@ export interface AppShellProps {
   history?: HistoryItem[];
   currentRun?: string;
   onRun?: (id: string) => void;
-  /** Кнопки внизу колонки: «Настройки», «Импорт и экспорт». */
+  /** Кнопки внизу колонки. */
   railActions?: React.ReactNode;
+  /** Действия с чатом в меню «⋯», которое появляется у строки истории при наведении. */
+  historyActions?: HistoryAction[];
+  onHistoryAction?: (itemId: string, actionId: string) => void;
+  /** Строка истории, название которой сейчас правят прямо в списке. */
+  renaming?: string | null;
+  /** Новое название или null — отмена. */
+  onRename?: (itemId: string, title: string | null) => void;
+  /** Подпись кнопки «начать новое» над историей; без неё кнопки нет. */
+  newLabel?: string;
+  onNew?: () => void;
+  /** Правая панель: видна постоянно, а когда не помещается — прячется и вызывается кнопкой в шапке. */
+  aside?: AsideProps;
   /** ModelChip. */
   model?: React.ReactNode;
   /** Один переключатель вида, свой у раздела. */
@@ -290,45 +331,99 @@ export interface AppShellProps {
   height?: number | string;
 }
 export function AppShell(props: AppShellProps) {
-  const { title, tagline, sections, current, onSection, historyLabel = 'История раздела', history, currentRun, onRun, railActions, model, tools, legend, dock, children, height = '100%' } = props;
-  const [railOpen, setRailOpen] = React.useState(false);
+  const { title, tagline, sections, current, onSection, historyLabel = 'История', history, currentRun, onRun, historyActions, onHistoryAction, renaming, onRename, railActions, newLabel, onNew, aside, model, tools, legend, dock, children, height = '100%' } = props;
+  const [menu, setMenu] = React.useState<string | null>(null);        // history row whose ⋯ menu is open
+  const [sure, setSure] = React.useState<string | null>(null);        // action waiting for a second press
+  React.useEffect(() => {
+    if (!menu) return;
+    const off = (e: MouseEvent) => { if (!(e.target as Element).closest('.te-hist__menu, .te-hist__more')) { setMenu(null); setSure(null); } };
+    document.addEventListener('mousedown', off);
+    return () => document.removeEventListener('mousedown', off);
+  }, [menu]);
+  // null — as the width allows: side columns are shown on a wide screen and become drawers on a narrow one
+  const [rail, setRail] = React.useState<boolean | null>(null);
+  const [side, setSide] = React.useState<boolean | null>(null);
+  const shell = React.useRef<HTMLDivElement>(null);
+  const shown = (sel: string) => { const el = shell.current?.querySelector(sel); return !!el && getComputedStyle(el).display !== 'none'; };
+  const narrow = () => !!shell.current && shell.current.clientWidth <= 820;
+  const closeDrawers = () => { if (narrow()) setRail(null); if (shell.current && shell.current.clientWidth <= 1180) setSide(null); };
+  const railOn = rail ?? !narrow(), drawer = (rail === true && narrow()) || (side === true && !!shell.current && shell.current.clientWidth <= 1180);
   return (
-    <div className={cx('te-shell', railOpen && 'is-rail-open')} style={{ height }}>
+    <div ref={shell} className={cx('te-shell', aside && 'has-aside', rail === true && 'is-rail-open', rail === false && 'is-rail-closed', side === true && 'is-aside-open', side === false && 'is-aside-closed')} style={{ height }}>
       <aside className="te-rail">
         <Brand title={title} tagline={tagline} />
-        <nav className="te-nav" aria-label="Разделы">
-          {sections.map(s => (
-            <button key={s.id} type="button" className="te-nav__item" aria-current={s.id === current ? 'page' : undefined} onClick={() => { onSection?.(s.id); setRailOpen(false); }}>
-              <span>{s.label}</span>{s.count ? <small>{s.count}</small> : null}
-            </button>
-          ))}
-        </nav>
+        {newLabel && <button type="button" className="te-rail__new" onClick={() => { onNew?.(); closeDrawers(); }}><Icon name="pencil" />{newLabel}</button>}
+        {sections.length > 1 && (
+          <nav className="te-modes" aria-label="Режимы">
+            {sections.map(s => (
+              <button key={s.id} type="button" className="te-mode" disabled={s.soon} aria-current={s.id === current ? 'page' : undefined} onClick={() => { onSection?.(s.id); closeDrawers(); }}>
+                {s.icon && <Icon name={s.icon} size={18} />}<span><b>{s.label}</b>{s.text && <small>{s.text}</small>}</span>{s.soon && <em className="te-soon">Скоро</em>}
+              </button>
+            ))}
+          </nav>
+        )}
         {history && history.length > 0 && (
           <>
             <p className="te-cap">{historyLabel}</p>
             <div className="te-hist">
-              {history.map(h => (
-                <button key={h.id} type="button" className={cx('te-hist__item', h.id === currentRun && 'is-on')} onClick={() => { onRun?.(h.id); setRailOpen(false); }}>
-                  <b>{h.title}</b>{h.meta && <small>{h.meta}</small>}
-                </button>
+              {history.map(h => renaming === h.id ? (
+                <div key={h.id} className="te-hist__item is-on">
+                  {h.icon && <Icon name={h.icon} />}
+                  <span>
+                    <input className="te-hist__edit" autoFocus defaultValue={h.title} aria-label="Название чата"
+                      onKeyDown={e => { if (e.key === 'Enter') onRename?.(h.id, e.currentTarget.value); if (e.key === 'Escape') onRename?.(h.id, null); }}
+                      onBlur={e => onRename?.(h.id, e.currentTarget.value)} />
+                    {h.meta && <small>{h.meta}</small>}
+                  </span>
+                </div>
+              ) : (
+                <div key={h.id} className={cx('te-hist__row', menu === h.id && 'is-menu')}>
+                  <button type="button" className={cx('te-hist__item', h.id === currentRun && 'is-on')} onClick={() => { onRun?.(h.id); closeDrawers(); }}>
+                    {h.icon && <Icon name={h.icon} />}<span><b>{h.title}</b>{h.meta && <small>{h.meta}</small>}</span>
+                  </button>
+                  {historyActions && historyActions.length > 0 && <>
+                    <button type="button" className="te-hist__more" aria-label="Действия с чатом" aria-expanded={menu === h.id}
+                      onClick={() => { setMenu(menu === h.id ? null : h.id); setSure(null); }}><Icon name="more" /></button>
+                    {menu === h.id && (
+                      <div className="te-hist__menu" role="menu">
+                        {historyActions.map(a => (
+                          <button key={a.id} type="button" role="menuitem" className={cx('te-hist__act', a.danger && 'is-danger', sure === a.id && 'is-sure')}
+                            onClick={() => {
+                              if (a.danger && sure !== a.id) { setSure(a.id); return; }
+                              setMenu(null); setSure(null); onHistoryAction?.(h.id, a.id);
+                            }}><Icon name={a.icon} />{sure === a.id ? 'Точно удалить?' : a.label}</button>
+                        ))}
+                      </div>
+                    )}
+                  </>}
+                </div>
               ))}
             </div>
           </>
         )}
         {railActions && <div className="te-rail__foot">{railActions}</div>}
       </aside>
-      {railOpen && <div className="te-scrim" onClick={() => setRailOpen(false)} />}
+      {drawer && <div className="te-scrim" onClick={() => { setRail(narrow() ? null : rail); setSide(null); }} />}
       <main className="te-main">
         <header className="te-top">
-          <button type="button" className="te-burger" aria-label="Разделы" aria-expanded={railOpen} onClick={() => setRailOpen(o => !o)}>☰</button>
+          <button type="button" className="te-top__btn" aria-label="Боковая колонка с историей" title="Боковая колонка с историей" aria-pressed={railOn}
+            onClick={() => setRail(!shown('.te-rail'))}><Icon name="panelLeft" size={18} /></button>
           {model}
           <span className="te-top__sp" />
           {tools}
+          {aside && <button type="button" className="te-top__btn" aria-label={aside.title} title={aside.title} aria-pressed={side ?? undefined}
+            onClick={() => setSide(!shown('.te-aside'))}><Icon name="panel" size={18} /></button>}
         </header>
         {legend}
         <div className="te-body">{children}</div>
         {dock && <div className="te-dock">{dock}</div>}
       </main>
+      {aside && (
+        <aside className="te-aside" aria-label={aside.title}>
+          <div className="te-aside__head"><b>{aside.title}</b></div>
+          <div className="te-aside__body">{aside.children}</div>
+        </aside>
+      )}
     </div>
   );
 }

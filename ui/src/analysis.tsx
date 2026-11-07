@@ -159,8 +159,10 @@ export interface Stage {
   /** Объяснение простыми словами. */
   text?: React.ReactNode;
   formula?: React.ReactNode;
-  /** Пример на текущем токене под формулой. */
+  /** Та же формула с числами текущего токена; стоит справа от формулы. */
   example?: React.ReactNode;
+  /** Что за буквами: картинка доли (ShareViz) и расшифровка обозначений (Legend) под формулой. */
+  visual?: React.ReactNode;
 }
 export interface StageChainProps {
   /** Название группы для экранного диктора. */
@@ -186,9 +188,10 @@ export function StageChain({ label, stages, active, onSelect, explain = true, fi
         ))}
       </div>
       {explain && cur.text && (
-        <div className="te-explain" style={fixedHeight ? undefined : { height: 'auto' }} aria-live="polite">
+        <div key={cur.id} className="te-explain" style={fixedHeight ? undefined : { height: 'auto' }} aria-live="polite">
           <p><b>{cur.title ?? [cur.name, cur.param].filter(Boolean).join(' ')}.</b> {cur.text}</p>
-          {cur.formula && <div className="te-fx">{cur.formula}{cur.example && <span>{cur.example}</span>}</div>}
+          {cur.formula && <div className="te-fx">{cur.formula}{cur.example && <><span className="te-fx__eq">→</span><span className="te-fx__num">{cur.example}</span></>}</div>}
+          {cur.visual}
         </div>
       )}
     </>
@@ -250,4 +253,92 @@ export function HeatTable({ columns, rows, format = v => pct(v), plain = [], lev
       </table>
     </div>
   );
+}
+
+/* ---------- formula ---------- */
+// A tiny subset of TeX, enough for the sampler formulas: \frac{a}{b}, x_i, x_{..}, x^{..}; Latin letters become
+// italic variables, Cyrillic words stay upright as plain text.
+function group(s: string, at: number): [string, number] {
+  if (s[at] !== '{') return [s[at] ?? '', at + 1];
+  let depth = 0;
+  for (let i = at; i < s.length; i++) {
+    if (s[i] === '{') depth++;
+    else if (s[i] === '}' && --depth === 0) return [s.slice(at + 1, i), i + 1];
+  }
+  return [s.slice(at + 1), s.length];
+}
+function tex(s: string): React.ReactNode[] {
+  const out: React.ReactNode[] = [];
+  let i = 0, k = 0;
+  while (i < s.length) {
+    if (s.startsWith('\\frac', i)) {
+      const [a, j] = group(s, i + 5), [b, j2] = group(s, j);
+      out.push(<span key={k++} className="te-math__frac"><span>{tex(a)}</span><span>{tex(b)}</span></span>);
+      i = j2;
+    } else if (s[i] === '_' || s[i] === '^') {
+      const [body, j] = group(s, i + 1);
+      out.push(s[i] === '_' ? <sub key={k++}>{tex(body)}</sub> : <sup key={k++}>{tex(body)}</sup>);
+      i = j;
+    } else {
+      const word = /^[а-яё][а-яё .]*/i.exec(s.slice(i)), latin = /^[A-Za-z]+/.exec(s.slice(i));
+      if (word) { out.push(<span key={k++} className="te-math__w">{word[0]}</span>); i += word[0].length; }
+      else if (latin) { out.push(latin[0].length > 2 ? latin[0] : <var key={k++}>{latin[0]}</var>); i += latin[0].length; }
+      else { out.push(s[i]); i++; }
+    }
+  }
+  return out;
+}
+export interface FormulaProps {
+  /** Запись в духе TeX: `p_i = \\frac{e^{z_i}}{Σ_j e^{z_j}}`. */
+  children: string;
+}
+/** Формула: переменные курсивом, дроби в два этажа. */
+export function Formula({ children }: FormulaProps) {
+  return <span className="te-math">{tex(children)}</span>;
+}
+
+export interface ShareItem {
+  /** Доля кандидата 0…1 на входе этапа. */
+  share: number;
+  /** Останется ли кандидат после этапа. */
+  kept: boolean;
+  /** Выбранный токен. */
+  chosen?: boolean;
+  /** Подпись во всплывающей подсказке. */
+  label: string;
+}
+export interface ShareVizProps {
+  /** stack — доли подряд, как накопленная сумма (Top-P, Top-K); bars — столбики относительно лидера (Min-P). */
+  kind: 'stack' | 'bars';
+  items: ShareItem[];
+  /** Граница: доля от 0 до 1 (для stack — накопленная сумма, для bars — шанс одного кандидата). */
+  threshold?: number;
+  /** Одна строка под картинкой. */
+  note: React.ReactNode;
+}
+/** Картинка к формуле этапа: какие кандидаты проходят и где граница. */
+export function ShareViz({ kind, items, threshold, note }: ShareVizProps) {
+  const lead = Math.max(...items.map(i => i.share), 1e-9);
+  return (
+    <div className={cx('te-viz', `te-viz--${kind}`)}>
+      <div className="te-viz__track">
+        {items.map((it, k) => (
+          <i key={k} title={it.label} className={cx(it.kept ? 'is-kept' : 'is-out', it.chosen && 'is-chosen')}
+            style={kind === 'stack' ? { width: it.share * 100 + '%' } : { height: Math.max(3, (it.share / lead) * 100) + '%' }} />
+        ))}
+        {threshold != null && <b className="te-viz__line" style={kind === 'stack' ? { left: threshold * 100 + '%' } : { bottom: Math.min(100, (threshold / lead) * 100) + '%' }} />}
+      </div>
+      <small>{note}</small>
+    </div>
+  );
+}
+
+export interface LegendProps {
+  /** Обозначение в записи формулы и что оно значит на этом токене. */
+  items: { sym: string; text: React.ReactNode }[];
+}
+/** Расшифровка букв формулы на выбранном токене. */
+export function Legend({ items }: LegendProps) {
+  if (!items.length) return null;
+  return <dl className="te-legendfx">{items.map((it, k) => <div key={k}><dt><Formula>{it.sym}</Formula></dt><dd>{it.text}</dd></div>)}</dl>;
 }

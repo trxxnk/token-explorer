@@ -11,5 +11,5 @@
     "allowUmdGlobalAccess": true,
     "types": ["react", "react-dom"]
   },
-  "include": ["src", "demos"]
+  "include": ["src", "demos", "app"]
 }

@@ -24,6 +24,16 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import numpy as np
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
+UI_FILES = {"index.html": "text/html; charset=utf-8", "app.js": "text/javascript; charset=utf-8",
+            "app.css": "text/css; charset=utf-8", "icon.svg": "image/svg+xml"}
+NOT_BUILT = """<!doctype html><meta charset="utf-8"><title>Token Explorer</title>
+<body style="font:16px/1.5 system-ui;max-width:40em;margin:15vh auto;padding:0 16px">
+<h1>Интерфейс не собран</h1>
+<p>Сервер работает, но страницы для него ещё нет. Соберите её один раз (нужен Node 20 или новее):</p>
+<pre>cd ui
+npm install
+npm run app</pre>
+<p>Затем обновите эту страницу. Перезапускать сервер не нужно.</p>"""
 MODEL_DIRS = [os.path.join(ROOT, "models"), os.path.expanduser("~/.lmstudio/models")]
 PENALTY_LAST_N = 64
 CHUNK = 256          # prompt tokens per forward pass
@@ -480,16 +490,33 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         path = self.path.split("?")[0]
         if path in ("/", "/index.html"):
-            with open(os.path.join(ROOT, "index.html"), "rb") as f:
-                body = f.read()
-            self._head(200, "text/html; charset=utf-8", len(body))
-            self.wfile.write(body)
+            self._static("index.html")
+        elif path in ("/new", "/new/"):          # the address the interface had while it lived next to the old one
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
+        elif path.lstrip("/") in UI_FILES:
+            self._static(path.lstrip("/"))
         elif path == "/v1/models":
             self._json(200, {"object": "list", "data": [{"id": m, "object": "model"} for m in find_models()]})
         elif path == "/info":
             self._json(200, dict(self.engine.backend.info, engine="token-explorer", protocol=1))
         else:
             self._json(404, {"error": {"message": "not found"}})
+
+    def _static(self, name):
+        # the interface is built by `npm run app` in ui/ into ui/dist
+        full = os.path.join(ROOT, "ui", "dist", name)
+        if not os.path.isfile(full):
+            if name != "index.html":
+                return self._json(404, {"error": {"message": "not found"}})
+            body = NOT_BUILT.encode()
+            self._head(503, "text/html; charset=utf-8", len(body))
+            return self.wfile.write(body)
+        with open(full, "rb") as f:
+            body = f.read()
+        self._head(200, UI_FILES[name], len(body))
+        self.wfile.write(body)
 
     def do_POST(self):
         path = self.path.split("?")[0]

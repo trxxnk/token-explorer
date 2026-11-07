@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<rect x="0" y="0" width="1024" height="1024" rx="236" fill="#FFFFFF" />
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Two lower-probability alternatives -->
+    <path d="M 512 512 C 463 458, 407 401, 343 359 C 296 328, 252 315, 210 315"
+          stroke="#212121" stroke-width="42" opacity="0.42" />
+    <path d="M 512 512 C 572 553, 626 600, 684 643 C 731 677, 779 692, 823 695"
+          stroke="#212121" stroke-width="42" opacity="0.22" />
+    <!-- Incoming path and selected continuation -->
+    <path d="M 512 850 L 512 512 C 565 446, 652 431, 717 372 C 768 326, 794 277, 820 225"
+          stroke="#212121" stroke-width="76" />
+  </g>
+  <circle cx="512" cy="512" r="23" fill="#212121" />
+
+</svg>

@@ -1,6 +1,7 @@
 # packages and build output are recreated by `npm install` and `npm run build`
 node_modules/
 out/
+dist/
 design-system/project/components/bundle.js
 design-system/project/components/bundle.css
 design-system/project/components/index.d.ts
